@@ -33,6 +33,9 @@ smtg_add_vst3plugin(CuPressor
     source/mypluginentry.cpp
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/source/compressor_CUDA/src)
+target_link_libraries(CuPressor PRIVATE ${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.lib)
+
 #- VSTGUI Wanted ----
 if(SMTG_ENABLE_VSTGUI_SUPPORT)
     target_sources(CuPressor

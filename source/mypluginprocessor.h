@@ -5,6 +5,7 @@
 #pragma once
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
+#include "compressor_CUDA/src/Compressor.h"
 
 namespace cudaCompressor {
 
@@ -50,7 +51,7 @@ public:
 
 //------------------------------------------------------------------------
 protected:
-
+	Compressor compressor;
 };
 
 //------------------------------------------------------------------------

@@ -1,0 +1,6 @@
+# FOLDERS
+/build/*
+!/build/VST3/
+
+# FILES
+build.bat

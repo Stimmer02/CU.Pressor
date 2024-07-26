@@ -68,7 +68,7 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 {
 	//--- First : Read inputs parameter changes-----------
 
-	/*if (data.inputParameterChanges)
+	if (data.inputParameterChanges)
 	{
 		int32 numParamsChanged = data.inputParameterChanges->getParameterCount ();
 		for (int32 index = 0; index < numParamsChanged; index++)
@@ -80,10 +80,16 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 				int32 numPoints = paramQueue->getPointCount ();
 				switch (paramQueue->getParameterId ())
 				{
+					case 0:
+						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+						{
+							compressor.setCompressionFactor(value);
+						}
+						break;
 				}
 			}
 		}
-	}*/
+	}
 	
 	//--- Here you have to implement your processing
 
@@ -100,12 +106,7 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 			int32 minChan = std::min (data.inputs[i].numChannels, data.outputs[i].numChannels);
 			for (int32 c = 0; c < minChan; c++)
 			{
-				// do not need to be copied if the buffers are the same
-				if (data.outputs[i].channelBuffers32[c] != data.inputs[i].channelBuffers32[c])
-				{
-					memcpy (data.outputs[i].channelBuffers32[c], data.inputs[i].channelBuffers32[c],
-							data.numSamples * sizeof (Vst::Sample32));
-				}
+				compressor.compress(data.inputs[i].channelBuffers32[c], data.outputs[i].channelBuffers32[c], data.numSamples);
 			}
 			data.outputs[i].silenceFlags = data.inputs[i].silenceFlags;
 				

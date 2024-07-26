@@ -24,7 +24,15 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 		return result;
 	}
 
-	// Here you could register some parameters
+	parameters.addParameter(
+		STR16("Ratio"),    // Parameter title
+		nullptr,          // Parameter units (optional)
+		0,                // Step count (0 means continuous)
+		0.5,              // Default value (in normalized range [0,1])
+		Vst::ParameterInfo::kCanAutomate, // Flags (this one makes it automatable)
+		0,                // Parameter ID
+		0,                // Parameter group (optional)
+		STR16("Ratio"));   // Short title (optional)
 
 	return result;
 }
