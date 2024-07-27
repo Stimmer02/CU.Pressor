@@ -14,7 +14,7 @@ project(CuPressor
     # This is your plug-in version number. Change it here only.
     # Version number symbols usable in C++ can be found in
     # source/version.h and ${PROJECT_BINARY_DIR}/projectversion.h.
-    VERSION 1.1.0.0 
+    VERSION 1.2.1.0 
     DESCRIPTION "CuPressor VST 3 Plug-in"
 )
 
@@ -38,7 +38,10 @@ source/myplugincontroller.cpp
 source/mypluginentry.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/source/compressor_CUDA/src)
+include_directories(
+    ${CMAKE_SOURCE_DIR}/source/compressor_CUDA/src
+    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/include"
+)
 target_link_libraries(CuPressor PRIVATE ${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.lib)
 
 

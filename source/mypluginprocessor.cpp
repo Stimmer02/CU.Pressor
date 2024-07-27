@@ -83,7 +83,19 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 					case 0:
 						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
 						{
-							compressor.setCompressionFactor(value);
+							compressor.setCompressionFactor1(value);
+						}
+						break;
+					case 1:
+						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+						{
+							compressor.setCompressionFactor2(value);
+						}
+						break;
+					case 2:
+						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+						{
+							compressor.setVolume(value);
 						}
 						break;
 				}

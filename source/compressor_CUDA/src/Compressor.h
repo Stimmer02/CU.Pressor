@@ -10,17 +10,33 @@
 #define COMPRESSOR_API
 #endif
 
+#include <cuda_runtime.h>
+#include <cuda.h>
+#include <cufft.h>
+
 class COMPRESSOR_API Compressor{
 public:
     Compressor();
     ~Compressor();
     void compress(float* samplesIn, float* samplesOut, int size);
-    void setCompressionFactor(double& parameter);
+    void setCompressionFactor1(double& parameter);
+    void setCompressionFactor2(double& parameter);
+    void setVolume(double& parameter);
 
 private:
 	void allocateIfNeeded(int size);
-    int gpuBufferSize;
-	float* d_buffer;
+    void setWindowSize(int size);
 
-    float compressionFactor;
+    int windowSize;
+    int allocatedMemorySize;
+
+    bool workBufferIndex;
+    cufftReal* d_workBuffer[2];
+    cufftComplex* d_cufftOutput;
+    cufftHandle cufftR2C;
+    cufftHandle cufftC2R;
+
+    float compressionFactor1;
+    float compressionFactor2;
+    float volume;
 };

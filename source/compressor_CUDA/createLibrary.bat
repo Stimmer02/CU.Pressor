@@ -34,7 +34,7 @@ if %ERRORLEVEL% neq 0 call :handleError
 
 echo.
 echo Building library...
-nvcc -shared -lcudart -o Compressor.dll ..\src\Compressor.cu -D COMPRESSOR_EXPORTS
+nvcc -shared -lcudart -lcufft -o Compressor.dll ..\src\Compressor.cu -D COMPRESSOR_EXPORTS
 if %ERRORLEVEL% neq 0 call :handleError
 
 
@@ -50,7 +50,7 @@ if %ERRORLEVEL% neq 0 call :handleError
 
 echo.
 echo Building test...
-cl ..\src\test.cpp /link /out:test.exe /LIBPATH:".\" Compressor.lib
+cl ..\src\test.cpp /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\include" /link /out:test.exe /LIBPATH:".\" Compressor.lib
 @REM cl ..\src\test.cpp /link /out:test.exe /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\lib\x64" Compressor.lib cudart.lib
 if %ERRORLEVEL% neq 0 call :handleError
 
