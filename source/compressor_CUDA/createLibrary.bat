@@ -58,6 +58,9 @@ if %ERRORLEVEL% neq 0 call :handleError
 move build\Compressor.lib lib\Compressor.lib
 if %ERRORLEVEL% neq 0 call :handleError
 
+if exist ..\..\build\VST3\Release\CuPressor.vst3\ ( cp lib\Compressor.dll ..\..\build\VST3\Release\CuPressor.vst3\ )
+if %ERRORLEVEL% neq 0 call :handleError
+
 echo.
 echo Done.
 pause

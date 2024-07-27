@@ -1,6 +1,8 @@
 # FOLDERS
 /build/*
-!/build/VST3/
+/source/compressor_CUDA/*
+!/source/compressor_CUDA/src*
+
 
 # FILES
 build.bat
