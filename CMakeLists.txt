@@ -14,7 +14,7 @@ project(CuPressor
     # This is your plug-in version number. Change it here only.
     # Version number symbols usable in C++ can be found in
     # source/version.h and ${PROJECT_BINARY_DIR}/projectversion.h.
-    VERSION 1.0.0.0 
+    VERSION 1.1.0.0 
     DESCRIPTION "CuPressor VST 3 Plug-in"
 )
 
@@ -27,18 +27,29 @@ file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Release")
 file(COPY "${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.dll"
      DESTINATION "${CMAKE_BINARY_DIR}/bin/Release")
 
+
 smtg_add_vst3plugin(CuPressor
-    source/version.h
-    source/myplugincids.h
-    source/mypluginprocessor.h
-    source/mypluginprocessor.cpp
-    source/myplugincontroller.h
-    source/myplugincontroller.cpp
-    source/mypluginentry.cpp
+source/version.h
+source/myplugincids.h
+source/mypluginprocessor.h
+source/mypluginprocessor.cpp
+source/myplugincontroller.h
+source/myplugincontroller.cpp
+source/mypluginentry.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/source/compressor_CUDA/src)
 target_link_libraries(CuPressor PRIVATE ${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.lib)
+
+
+# include_directories(
+#     "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/include"
+#     ${CMAKE_SOURCE_DIR}/source/compressor_CUDA/src
+# )
+# target_link_libraries(CuPressor PRIVATE
+#     ${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.lib
+#     "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/lib/x64/cudart.lib"
+# )
 
 #- VSTGUI Wanted ----
 if(SMTG_ENABLE_VSTGUI_SUPPORT)
@@ -63,11 +74,11 @@ smtg_target_add_plugin_snapshots (CuPressor
         resource/0E00A5612C6458BEB7608BAB42192C36_snapshot_2.0x.png
 )
 
-add_custom_command(TARGET CuPressor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.dll"
-    "$<TARGET_FILE_DIR:CuPressor>/../../Compressor.dll"
-)
+# add_custom_command(TARGET CuPressor POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#     "${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.dll"
+#     "$<TARGET_FILE_DIR:CuPressor>/../../Compressor.dll"
+# )
 
 target_link_libraries(CuPressor
     PRIVATE
