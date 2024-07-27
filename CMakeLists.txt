@@ -23,6 +23,10 @@ set(SMTG_VSTGUI_ROOT "${vst3sdk_SOURCE_DIR}")
 add_subdirectory(${vst3sdk_SOURCE_DIR} ${PROJECT_BINARY_DIR}/vst3sdk)
 smtg_enable_vst3_sdk()
 
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Release")
+file(COPY "${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.dll"
+     DESTINATION "${CMAKE_BINARY_DIR}/bin/Release")
+
 smtg_add_vst3plugin(CuPressor
     source/version.h
     source/myplugincids.h
@@ -57,6 +61,12 @@ smtg_target_add_plugin_snapshots (CuPressor
     RESOURCES
         resource/0E00A5612C6458BEB7608BAB42192C36_snapshot.png
         resource/0E00A5612C6458BEB7608BAB42192C36_snapshot_2.0x.png
+)
+
+add_custom_command(TARGET CuPressor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_SOURCE_DIR}/source/compressor_CUDA/lib/Compressor.dll"
+    "$<TARGET_FILE_DIR:CuPressor>/../../Compressor.dll"
 )
 
 target_link_libraries(CuPressor
