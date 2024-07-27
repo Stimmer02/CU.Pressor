@@ -51,9 +51,10 @@ void Compressor::setCompressionFactor(double& parameter){
     } else if (parameter > 1){
         parameter = 1;
     }
-    float out = parameter * 2;
-    for (int i = 0; i < 3; i++){
-        out *= out;
+    double out = parameter * 1.2;
+    double multiplier = out;
+    for (int i = 0; i < 2; i++){
+        out *= multiplier;
     }
-    compressionFactor =  out - (1 - minValue);
+    compressionFactor = out - (1 - minValue);
 }
