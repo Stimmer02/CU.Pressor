@@ -14,7 +14,7 @@ project(CuPressor
     # This is your plug-in version number. Change it here only.
     # Version number symbols usable in C++ can be found in
     # source/version.h and ${PROJECT_BINARY_DIR}/projectversion.h.
-    VERSION 1.2.1.0 
+    VERSION 1.4.1.0 
     DESCRIPTION "CuPressor VST 3 Plug-in"
 )
 

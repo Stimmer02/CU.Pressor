@@ -22,6 +22,7 @@ public:
     void setCompressionFactor1(double& parameter);
     void setCompressionFactor2(double& parameter);
     void setVolume(double& parameter);
+    void setPreGain(double& parameter);
 
 private:
 	void allocateIfNeeded(int size);
@@ -39,4 +40,5 @@ private:
     float compressionFactor1;
     float compressionFactor2;
     float volume;
+    float preGain;
 };

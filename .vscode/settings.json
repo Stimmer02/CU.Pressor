@@ -1,5 +1,31 @@
 {
     "files.associations": {
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "vector": "cpp",
+        "forward_list": "cpp",
+        "xstring": "cpp",
+        "string": "cpp",
+        "memory": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "iterator": "cpp",
+        "filesystem": "cpp",
+        "format": "cpp",
+        "iosfwd": "cpp",
+        "ranges": "cpp",
+        "span": "cpp",
+        "system_error": "cpp",
+        "xlocale": "cpp",
+        "xtree": "cpp",
+        "xutility": "cpp",
+        "typeinfo": "cpp",
+        "chrono": "cpp",
+        "map": "cpp",
+        "unordered_map": "cpp",
+        "__bit_reference": "cpp",
+        "functional": "cpp",
+        "string_view": "cpp"
     }
 }

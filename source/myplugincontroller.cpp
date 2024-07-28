@@ -43,14 +43,23 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 		0,                
 		STR16("Comp2"));   
 	parameters.addParameter(
-		STR16("Volum"),   
+		STR16("Volume"),   
 		nullptr,          
 		0,               
 		1.0,              
 		Vst::ParameterInfo::kCanAutomate, 
 		2,                
 		0,              
-		STR16("Vol"));   
+		STR16("Vol"));
+	parameters.addParameter(
+		STR16("PreGain"),   
+		nullptr,          
+		0,               
+		0.5,              
+		Vst::ParameterInfo::kCanAutomate, 
+		3,                
+		0,              
+		STR16("PGain"));
 
 	return result;
 }
