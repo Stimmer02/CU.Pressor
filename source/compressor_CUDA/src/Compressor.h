@@ -10,9 +10,9 @@
 #define COMPRESSOR_API
 #endif
 
-#include <cuda_runtime.h>
-#include <cuda.h>
 #include <cufft.h>
+
+#include "buffer/CuShiftBuffer.h"
 
 class COMPRESSOR_API Compressor{
 public:
@@ -29,11 +29,9 @@ private:
     void setWindowSize(int size);
 
     int windowSize;
-    int allocatedMemorySize;
 
-    bool workBufferIndex;
-    cufftReal* d_workBuffer[2];
-    cufftComplex* d_cufftOutput;
+    CuShiftBuffer<cufftReal>* workBuffer;
+    ACuBuffer<cufftComplex>* cufftOutput;
     cufftHandle cufftR2C;
     cufftHandle cufftC2R;
 

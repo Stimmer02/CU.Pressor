@@ -33,8 +33,8 @@ cd build
 if %ERRORLEVEL% neq 0 call :handleError
 
 echo.
-echo Building library...
-nvcc -shared -lcudart -lcufft -o Compressor.dll ..\src\Compressor.cu -D COMPRESSOR_EXPORTS
+echo Creating dynamic library...
+nvcc -shared -lcudart -lcufft -o Compressor.dll -D COMPRESSOR_EXPORTS ..\src\test.cpp ..\src\Compressor.cu ..\src\buffer\CuShiftBuffer.cu ..\src\buffer\ACuBuffer.cu ..\src\buffer\ACuSimpleBuffer.cu ..\src\buffer\CuSimpleBuffer_memoryOptimal.cu ..\src\buffer\CuSimpleBuffer_timeOptimal.cu ..\src\buffer\templateInstantiation.cu
 if %ERRORLEVEL% neq 0 call :handleError
 
 

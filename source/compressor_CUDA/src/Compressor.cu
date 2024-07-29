@@ -33,21 +33,11 @@ __global__ void cuPressorComplex(cufftComplex* data, int size, float factor, int
     }
 }
 
-__global__ void shiftData(float* inputBuffer, float* outputBuffer, int size, int shift){
-    int idx = blockIdx.x * blockDim.x + threadIdx.x; // For optimal thread usage, max idx should be size - shift
-    if (idx < size - shift){
-        outputBuffer[idx] = inputBuffer[idx + shift];
-    }
-}
-
 Compressor::Compressor(){
     cufftR2C = 0;
     cufftC2R = 0;
-    allocatedMemorySize = 0;
-    workBufferIndex = 0;
-    d_workBuffer[0] = nullptr;
-    d_workBuffer[1] = nullptr;
-    d_cufftOutput = nullptr;
+    workBuffer = new CuShiftBuffer<cufftReal>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
+    cufftOutput = CuBufferFactory::createBuffer<cufftComplex>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     compressionFactor1 = 0.5;
     compressionFactor2 = 0.5;
     volume = 1;
@@ -62,15 +52,8 @@ Compressor::~Compressor(){
     if (cufftC2R != 0) {
         cufftDestroy(cufftC2R);
     }
-    if (d_workBuffer[0] != nullptr) {
-        cudaFree(d_workBuffer[0]);
-    }
-    if (d_workBuffer[1] != nullptr) {
-        cudaFree(d_workBuffer[1]);
-    }
-    if (d_cufftOutput != nullptr) {
-        cudaFree(d_cufftOutput);
-    }
+    delete cufftOutput;
+    delete workBuffer;
 }
 
 void Compressor::compress(float* samplesIn, float* samplesOut, int size){
@@ -78,26 +61,25 @@ void Compressor::compress(float* samplesIn, float* samplesOut, int size){
 
     if (size < windowSize){
         int numBlocksFragment = (windowSize - size + blockSize - 1) / blockSize;
-        shiftData<<<numBlocksFragment, blockSize>>>(d_workBuffer[workBufferIndex], d_workBuffer[!workBufferIndex], windowSize, size);
-        workBufferIndex = !workBufferIndex;
-        cudaMemcpy(d_workBuffer[workBufferIndex] + windowSize - size, samplesIn, size * sizeof(float), cudaMemcpyHostToDevice);
-        volumeControl<<<numBlocksFragment, blockSize>>>(d_workBuffer[workBufferIndex] + windowSize - size, size, preGain*2);
-        cufftExecR2C(cufftR2C, d_workBuffer[workBufferIndex], d_cufftOutput);
+        
+        workBuffer->put(samplesIn, size);
+        volumeControl<<<numBlocksFragment, blockSize>>>(workBuffer[windowSize - size], size, preGain*2);
+        cufftExecR2C(cufftR2C, workBuffer->getBuffer(), cufftOutput->getBuffer());
         int numBlocksComplex = (windowSize / 2 + blockSize) / blockSize;
-        cuPressorComplex<<<numBlocksComplex, blockSize>>>(d_cufftOutput, windowSize / 2 + 1, compressionFactor1, windowSize);
-        cufftExecC2R(cufftC2R, d_cufftOutput, d_workBuffer[!workBufferIndex]);
-        cuPressor<<<numBlocksFragment, blockSize>>>(d_workBuffer[!workBufferIndex] + windowSize - size, size, compressionFactor2, volume / (preGain * 2));
-        cudaMemcpy(samplesOut, d_workBuffer[!workBufferIndex] + windowSize - size, size * sizeof(float), cudaMemcpyDeviceToHost);
+        cuPressorComplex<<<numBlocksComplex, blockSize>>>(cufftOutput->getBuffer(), windowSize / 2 + 1, compressionFactor1, windowSize);
+        cufftExecC2R(cufftC2R, cufftOutput->getBuffer(), workBuffer->getInactiveBuffer());
+        cuPressor<<<numBlocksFragment, blockSize>>>(&workBuffer->getInactiveBuffer()[windowSize - size], size, compressionFactor2, volume / (preGain * 2));
+        cudaMemcpy(samplesOut, workBuffer->getInactiveBuffer() + windowSize - size, size * sizeof(float), cudaMemcpyDeviceToHost);
     } else if (size == windowSize){
-        cudaMemcpy(d_workBuffer[workBufferIndex], samplesIn, size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(workBuffer->getInactiveBuffer(), samplesIn, size * sizeof(float), cudaMemcpyHostToDevice);
         int numBlocksAll = (windowSize + blockSize - 1) / blockSize;
-        volumeControl<<<numBlocksAll, blockSize>>>(d_workBuffer[workBufferIndex] + windowSize - size, size, preGain*2);
-        cufftExecR2C(cufftR2C, d_workBuffer[workBufferIndex], d_cufftOutput);
+        volumeControl<<<numBlocksAll, blockSize>>>(&workBuffer->getInactiveBuffer()[windowSize - size], size, preGain*2);
+        cufftExecR2C(cufftR2C, workBuffer->getInactiveBuffer(), cufftOutput->getBuffer());
         int numBlocksComplex = (windowSize / 2 + blockSize) / blockSize;
-        cuPressorComplex<<<numBlocksComplex, blockSize>>>(d_cufftOutput, windowSize / 2 + 1, compressionFactor1, windowSize);
-        cufftExecC2R(cufftC2R, d_cufftOutput, d_workBuffer[!workBufferIndex]);
-        cuPressor<<<numBlocksAll, blockSize>>>(d_workBuffer[!workBufferIndex] + windowSize - size, size, compressionFactor2, volume / (preGain * 2));
-        cudaMemcpy(samplesOut, d_workBuffer[!workBufferIndex], size * sizeof(float), cudaMemcpyDeviceToHost);
+        cuPressorComplex<<<numBlocksComplex, blockSize>>>(cufftOutput->getBuffer(), windowSize / 2 + 1, compressionFactor1, windowSize);
+        cufftExecC2R(cufftC2R, cufftOutput->getBuffer(), workBuffer->getInactiveBuffer());
+        cuPressor<<<numBlocksAll, blockSize>>>(&workBuffer->getInactiveBuffer()[windowSize - size], size, compressionFactor2, volume / (preGain * 2));
+        cudaMemcpy(samplesOut, workBuffer->getInactiveBuffer(), size * sizeof(float), cudaMemcpyDeviceToHost);
     } else {
         int leftToProcess = size;
         for (int i = 0; i < size - windowSize; i += windowSize){
@@ -109,25 +91,9 @@ void Compressor::compress(float* samplesIn, float* samplesOut, int size){
 }
 
 void Compressor::allocateIfNeeded(int size){
-    if (allocatedMemorySize < size){
-        if (d_workBuffer[0] != nullptr) {
-            cudaFree(d_workBuffer[0]);
-        }
-        if (d_workBuffer[1] != nullptr) {
-            cudaFree(d_workBuffer[1]);
-        }
-        if (d_cufftOutput != nullptr) {
-            cudaFree(d_cufftOutput);
-        }
-		cudaMalloc(&d_workBuffer[0], size * sizeof(cufftReal));
-		cudaMalloc(&d_workBuffer[1], size * sizeof(cufftReal));
-        cudaMalloc(&d_cufftOutput, (size / 2 + 1) * sizeof(cufftComplex));
-
-        cudaMemset(d_workBuffer[0], 0, size * sizeof(cufftReal));
-        cudaMemset(d_workBuffer[1], 0, size * sizeof(cufftReal));
-        cudaMemset(d_cufftOutput, 0, (size / 2 + 1) * sizeof(cufftComplex));
-		allocatedMemorySize = size;
-	}
+    workBuffer->resize(size);
+    workBuffer->clear();
+    cufftOutput->resize(size / 2 + 1);
 }
 
 void Compressor::setWindowSize(int size){
