@@ -30,6 +30,7 @@ private:
 	void resize(uint size);
 
     uint windowSize;
+    uint complexWindowSize;
     uint bandCount;
 
     CuShiftBuffer<cufftReal>* workBuffer;
