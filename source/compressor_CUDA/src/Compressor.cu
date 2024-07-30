@@ -1,5 +1,6 @@
 #include "Compressor.h"
 
+
 __global__ void volumeControl(float* data, int size, float volume){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if(idx < size){
@@ -38,11 +39,14 @@ Compressor::Compressor(){
     cufftC2R = 0;
     workBuffer = new CuShiftBuffer<cufftReal>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     cufftOutput = CuBufferFactory::createBuffer<cufftComplex>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
-    compressionFactor1 = 0.5;
-    compressionFactor2 = 0.5;
-    volume = 1;
-    preGain = 0.5;
-    setWindowSize(1024);
+    double temp = 0.4;
+    setCompressionFactor1(temp);
+    setCompressionFactor2(temp);
+    temp = 1;
+    setVolume(temp);
+    temp = 0.5;
+    setPreGain(temp);
+    setWindowSize(4096);
 }
 
 Compressor::~Compressor(){
@@ -59,27 +63,30 @@ Compressor::~Compressor(){
 void Compressor::compress(float* samplesIn, float* samplesOut, int size){
 	static const int blockSize = 256;
 
+    CuShiftBuffer<cufftReal>& workBuffer = *this->workBuffer;
+    ACuBuffer<cufftComplex>& cufftOutput = *this->cufftOutput;
+
     if (size < windowSize){
-        int numBlocksFragment = (windowSize - size + blockSize - 1) / blockSize;
-        
-        workBuffer->put(samplesIn, size);
+        int numBlocksFragment = (size + blockSize - 1) / blockSize;
+        workBuffer.put(FROM_HOST, samplesIn, size);
         volumeControl<<<numBlocksFragment, blockSize>>>(workBuffer[windowSize - size], size, preGain*2);
-        cufftExecR2C(cufftR2C, workBuffer->getBuffer(), cufftOutput->getBuffer());
+        cufftExecR2C(cufftR2C, workBuffer, cufftOutput);
         int numBlocksComplex = (windowSize / 2 + blockSize) / blockSize;
-        cuPressorComplex<<<numBlocksComplex, blockSize>>>(cufftOutput->getBuffer(), windowSize / 2 + 1, compressionFactor1, windowSize);
-        cufftExecC2R(cufftC2R, cufftOutput->getBuffer(), workBuffer->getInactiveBuffer());
-        cuPressor<<<numBlocksFragment, blockSize>>>(&workBuffer->getInactiveBuffer()[windowSize - size], size, compressionFactor2, volume / (preGain * 2));
-        cudaMemcpy(samplesOut, workBuffer->getInactiveBuffer() + windowSize - size, size * sizeof(float), cudaMemcpyDeviceToHost);
+        cuPressorComplex<<<numBlocksComplex, blockSize>>>(cufftOutput, windowSize / 2 + 1, compressionFactor1, windowSize);
+        cufftExecC2R(cufftC2R, cufftOutput, workBuffer.getInactiveBuffer());
+        cuPressor<<<numBlocksFragment, blockSize>>>(workBuffer.getInactiveBuffer(windowSize - size), size, compressionFactor2, volume / (preGain * 2));
+        workBuffer.copyInactiveBuffer(TO_HOST, samplesOut, size, windowSize - size);
     } else if (size == windowSize){
-        cudaMemcpy(workBuffer->getInactiveBuffer(), samplesIn, size * sizeof(float), cudaMemcpyHostToDevice);
+        workBuffer.put(FROM_HOST, samplesIn, size);
+        cudaMemcpy(workBuffer.getInactiveBuffer(), samplesIn, size * sizeof(float), cudaMemcpyHostToDevice);
         int numBlocksAll = (windowSize + blockSize - 1) / blockSize;
-        volumeControl<<<numBlocksAll, blockSize>>>(&workBuffer->getInactiveBuffer()[windowSize - size], size, preGain*2);
-        cufftExecR2C(cufftR2C, workBuffer->getInactiveBuffer(), cufftOutput->getBuffer());
+        volumeControl<<<numBlocksAll, blockSize>>>(workBuffer.getInactiveBuffer(windowSize - size), size, preGain*2);
+        cufftExecR2C(cufftR2C, workBuffer, cufftOutput);
         int numBlocksComplex = (windowSize / 2 + blockSize) / blockSize;
-        cuPressorComplex<<<numBlocksComplex, blockSize>>>(cufftOutput->getBuffer(), windowSize / 2 + 1, compressionFactor1, windowSize);
-        cufftExecC2R(cufftC2R, cufftOutput->getBuffer(), workBuffer->getInactiveBuffer());
-        cuPressor<<<numBlocksAll, blockSize>>>(&workBuffer->getInactiveBuffer()[windowSize - size], size, compressionFactor2, volume / (preGain * 2));
-        cudaMemcpy(samplesOut, workBuffer->getInactiveBuffer(), size * sizeof(float), cudaMemcpyDeviceToHost);
+        cuPressorComplex<<<numBlocksComplex, blockSize>>>(cufftOutput, windowSize / 2 + 1, compressionFactor1, windowSize);
+        cufftExecC2R(cufftC2R, cufftOutput, workBuffer.getInactiveBuffer());
+        cuPressor<<<numBlocksAll, blockSize>>>(workBuffer.getInactiveBuffer(windowSize - size), size, compressionFactor2, volume / (preGain * 2));
+        workBuffer.copyInactiveBuffer(TO_HOST, samplesOut);
     } else {
         int leftToProcess = size;
         for (int i = 0; i < size - windowSize; i += windowSize){
@@ -136,7 +143,7 @@ void Compressor::setCompressionFactor2(double& parameter){
     for (int i = 0; i < 2; i++){
         out *= multiplier;
     }
-    compressionFactor1 = out - (1 - minValue);
+    compressionFactor2 = out - (1 - minValue);
 }
 
 void Compressor::setVolume(double& parameter){

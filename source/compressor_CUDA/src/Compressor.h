@@ -23,10 +23,10 @@ public:
     void setCompressionFactor2(double& parameter);
     void setVolume(double& parameter);
     void setPreGain(double& parameter);
+    void setWindowSize(int size);
 
 private:
 	void allocateIfNeeded(int size);
-    void setWindowSize(int size);
 
     int windowSize;
 

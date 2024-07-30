@@ -12,6 +12,8 @@ __global__ void kernel_shiftData(TYPE* inputBuffer, TYPE* outputBuffer, int size
 template <typename TYPE>
 CuShiftBuffer<TYPE>::CuShiftBuffer(uint size, typename CuBufferFactory::bufferType bufferType){
     CuBufferFactory::fillBufferArray<TYPE>(buffer, 2, size, bufferType);
+    setSize(buffer[0]->getSize());
+    setAllocatedSize(buffer[0]->getAllocatedSize());
     activeBuffer = 0;
 }
 
@@ -29,12 +31,12 @@ void CuShiftBuffer<TYPE>::shift(uint shiftSize){
 }
 
 template <typename TYPE>
-void CuShiftBuffer<TYPE>::put(TYPE* d_arr, uint size){
+void CuShiftBuffer<TYPE>::put(originType origin, TYPE* d_arr, uint size){
     if (size >= getSize()){
-        cudaMemcpy(buffer[activeBuffer]->getBuffer(), d_arr, getSize() * sizeof(TYPE), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(buffer[activeBuffer]->getBuffer(), d_arr, getSize() * sizeof(TYPE), (cudaMemcpyKind)origin);
     } else {
         shift(size);
-        cudaMemcpy(buffer[activeBuffer]->getBuffer() + buffer[activeBuffer]->getSize() - size, d_arr, size * sizeof(TYPE), cudaMemcpyDeviceToDevice); 
+        cudaMemcpy(buffer[activeBuffer]->getBuffer() + buffer[activeBuffer]->getSize() - size, d_arr, size * sizeof(TYPE), (cudaMemcpyKind)origin); 
     }
 }
 
@@ -61,8 +63,10 @@ void CuShiftBuffer<TYPE>::setBuffer(TYPE*& d_buffer, uint size, uint allocatedSi
 
 template <typename TYPE>
 void CuShiftBuffer<TYPE>::resize(uint newSize){
-        buffer[0]->resize(newSize);
+    buffer[0]->resize(newSize);
     buffer[1]->resize(newSize);
+    setSize(buffer[0]->getSize());
+    setAllocatedSize(buffer[0]->getAllocatedSize());
 }
 
 template <typename TYPE>
@@ -83,13 +87,11 @@ void CuShiftBuffer<TYPE>::allocate(uint size){
 
 template <typename TYPE>
 uint CuShiftBuffer<TYPE>::getSize() const {
-    // return buffer[activeBuffer]->getSize();
     return size;
 }
 
 template <typename TYPE>
 uint CuShiftBuffer<TYPE>::getAllocatedSize() const {
-    // return buffer[activeBuffer]->getAllocatedSize();
     return allocatedSize;
 }
 
@@ -99,8 +101,13 @@ TYPE* CuShiftBuffer<TYPE>::getBuffer() const {
 }
 
 template <typename TYPE>
-TYPE* CuShiftBuffer<TYPE>::getInactiveBuffer() const {
-    return buffer[!activeBuffer]->getBuffer();
+TYPE* CuShiftBuffer<TYPE>::getInactiveBuffer(uint index) const {
+    return buffer[!activeBuffer]->getBuffer() + index;
+}
+
+template <typename TYPE>
+void CuShiftBuffer<TYPE>::copyInactiveBuffer(destinationType destination, TYPE* d_buffer, uint size, uint index) const {
+    buffer[!activeBuffer]->copyBuffer(destination, d_buffer, size, index);
 }
 
 template <typename TYPE>

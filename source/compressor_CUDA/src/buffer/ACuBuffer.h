@@ -7,10 +7,21 @@
 
 typedef unsigned int uint;
 
+// namespace cuBuffer{
+    enum destinationType{
+        TO_DEVICE = cudaMemcpyKind::cudaMemcpyDeviceToDevice,
+        TO_HOST = cudaMemcpyKind::cudaMemcpyDeviceToHost,
+    };
+
+    enum originType{
+        FROM_DEVICE = cudaMemcpyKind::cudaMemcpyDeviceToDevice,
+        FROM_HOST = cudaMemcpyKind::cudaMemcpyHostToDevice,
+    };
+// }
 template <typename TYPE>
 class ACuBuffer{
 public:
-    ACuBuffer() = default;
+        ACuBuffer() = default;
     virtual ~ACuBuffer() = default;
 
     virtual uint getSize() const = 0;
@@ -19,7 +30,8 @@ public:
     virtual void setBuffer(ACuBuffer<TYPE>*& cuBuffer) = 0;
     virtual void setBuffer(TYPE*& d_buffer, uint size, uint allocatedSize = 0) = 0;
     virtual void copyBuffer(const ACuBuffer<TYPE>& cuBuffer);
-    virtual void copyBuffer(const TYPE*& d_buffer, uint size);
+    virtual void copyBuffer(originType origin, const TYPE* buffer, uint size);
+    virtual void copyBuffer(destinationType destination, TYPE* buffer, uint size = 0, uint index = 0) const;
     virtual bool compare(const ACuBuffer<TYPE>& cuBuffer) const;
     virtual void clear();
 
