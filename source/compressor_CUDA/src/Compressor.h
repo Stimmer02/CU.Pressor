@@ -18,20 +18,24 @@ class COMPRESSOR_API Compressor{
 public:
     Compressor();
     ~Compressor();
-    void compress(float* samplesIn, float* samplesOut, int size);
+    void compress(float* samplesIn, float* samplesOut, uint size);
     void setCompressionFactor1(double& parameter);
     void setCompressionFactor2(double& parameter);
     void setVolume(double& parameter);
     void setPreGain(double& parameter);
-    void setWindowSize(int size);
+    void setWindowSize(uint size);
+    void setBandCount(uint count);
 
 private:
-	void allocateIfNeeded(int size);
+	void resize(uint size);
 
-    int windowSize;
+    uint windowSize;
+    uint bandCount;
 
     CuShiftBuffer<cufftReal>* workBuffer;
     ACuBuffer<cufftComplex>* cufftOutput;
+    ACuBuffer<cufftComplex>* cufftBands;
+    ACuBuffer<cufftReal>* bands;
     cufftHandle cufftR2C;
     cufftHandle cufftC2R;
 
