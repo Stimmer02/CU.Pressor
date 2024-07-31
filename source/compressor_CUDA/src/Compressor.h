@@ -29,6 +29,7 @@ public:
 
 private:
 	void resize(uint size);
+    void generateBandBoundaries();
 
     uint windowSize;
     uint complexWindowSize;
@@ -38,6 +39,7 @@ private:
     ACuBuffer<cufftComplex>* cufftOutput;
     ACuBuffer<cufftComplex>* cufftBands;
     ACuBuffer<cufftReal>* bands;
+    ACuBuffer<int>* bandBoundaries;
     cufftHandle cufftR2C;
     cufftHandle cufftC2R;
 
