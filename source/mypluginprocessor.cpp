@@ -160,6 +160,7 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 tresult PLUGIN_API CuPressorProcessor::setupProcessing (Vst::ProcessSetup& newSetup)
 {
 	//--- called before any processing ----
+	compressor.setSampleRate(newSetup.sampleRate);
 	return AudioEffect::setupProcessing (newSetup);
 }
 

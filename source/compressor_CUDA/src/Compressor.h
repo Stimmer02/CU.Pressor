@@ -25,6 +25,7 @@ public:
     void setPreGain(double& parameter);
     void setWindowSize(uint size);
     void setBandCount(uint count);
+    void setSampleRate(uint rate);
 
 private:
 	void resize(uint size);
@@ -44,4 +45,6 @@ private:
     float compressionFactor2;
     float volume;
     float preGain;
+
+    uint sampleRate;
 };

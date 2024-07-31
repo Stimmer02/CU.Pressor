@@ -16,7 +16,7 @@ __global__ void cuPressor(cufftReal* data, int size, float factor, float volume)
 }
 __global__ void cuPressorBath(cufftReal* data, int size, float factor, float volume, int addressShift){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+    int idy = blockIdx.y; // do not set block y dimension, only grid y dimension
     if (idx < size){
         int index = idy * (addressShift + size) + idx + addressShift;
         data[index] = copysignf((-1 / ((1 + factor) * abs(data[index] * volume) + 1) + 1) * (2 + factor) / (1 + factor), data[index]);
@@ -24,20 +24,24 @@ __global__ void cuPressorBath(cufftReal* data, int size, float factor, float vol
 }
 __global__ void fftBandSplit(cufftComplex* input, cufftComplex* output, int size, int bandWidth){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+    int idy = blockIdx.y; // do not set block y dimension, only grid y dimension
     if (idx < size){
         bool copyBand = ((idx >= (idy * bandWidth)) && (idx < ((idy + 1) * bandWidth))) || (size - 1 == idx);
+        float bandMultiplier = 1 * copyBand + 0.001 * !copyBand;
         int index = idx + idy * size;
-        output[index].x = input[idx].x * copyBand;
-        output[index].y = input[idx].y * copyBand;
+        output[index].x = input[idx].x * bandMultiplier;
+        output[index].y = input[idx].y * bandMultiplier;
     }
 }
 
 __global__ void fftBandSplit_smooth(cufftComplex* input, cufftComplex* output, int size, int bandWidth){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+    int idy = blockIdx.y; // do not set block y dimension, only grid y dimension
     if (idx < size){
         float copyBand = 1 - 0.5 * cosf(3.14159265358979323846 * (idx - idy * bandWidth) / bandWidth);
+        if ((size - 1 == idx) || (idx == 0)){
+            copyBand = 1;
+        }
         int index = idx + idy * size;
         output[index].x = input[idx].x * copyBand;
         output[index].y = input[idx].y * copyBand;
@@ -57,7 +61,7 @@ __global__ void bandMerge(cufftReal* input, cufftReal* output, int arrShift, int
 
 
 Compressor::Compressor(){
-    bandCount = 4;
+    bandCount = 8;
     cufftR2C = 0;
     cufftC2R = 0;
     workBuffer = new CuShiftBuffer<cufftReal>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
@@ -71,7 +75,7 @@ Compressor::Compressor(){
     setVolume(temp);
     temp = 0.5;
     setPreGain(temp);
-    setWindowSize(4096);
+    setWindowSize(1024);
 }
 
 Compressor::~Compressor(){
@@ -99,6 +103,7 @@ void Compressor::compress(float* samplesIn, float* samplesOut, uint size){
         uint gridSizeComplex = (complexWindowSize + blockSize - 1) / blockSize;
         uint gridSizeReal = (size + blockSize - 1) / blockSize;
         dim3 gridSizeReal2D = {gridSizeReal, bandCount};
+        dim3 gridSizeComplex2D = {gridSizeComplex, bandCount};
 
         uint addressShift = windowSize - size;
 
@@ -108,14 +113,14 @@ void Compressor::compress(float* samplesIn, float* samplesOut, uint size){
         volumeControl<<<gridSizeReal, blockSize>>>(workBuffer[addressShift], size, preGain * 2);
 
         cufftExecR2C(cufftR2C, workBuffer, cufftOutput);
-        fftBandSplit_smooth<<<gridSizeComplex, blockSize>>>(cufftOutput, cufftBands, complexWindowSize, (complexWindowSize - 1) / bandCount);
+        fftBandSplit<<<gridSizeComplex2D, blockSize>>>(cufftOutput, cufftBands, complexWindowSize, (complexWindowSize - 1) / bandCount);
         cufftExecC2R(cufftC2R, cufftBands, bands);
 
-        cuPressorBath<<<gridSizeReal2D, blockSize>>>(bands, size, compressionFactor1, (float)bandCount / complexWindowSize, addressShift);
+        cuPressorBath<<<gridSizeReal2D, blockSize>>>(bands, size, compressionFactor1, (float)bandCount / windowSize, addressShift);
         bandMerge<<<gridSizeReal2D, blockSize>>>(bands, workBuffer.getInactiveBuffer(), addressShift, size, bandCount);
 
-        // volumeControl<<<gridSizeReal, blockSize>>>(workBuffer.getInactiveBuffer(), size, volume / preGain * 2);
-        cuPressor<<<gridSizeReal, blockSize>>>(workBuffer.getInactiveBuffer(), size, compressionFactor2, volume / (preGain * 2));
+        volumeControl<<<gridSizeReal, blockSize>>>(workBuffer.getInactiveBuffer(), size, volume / (preGain * 2));
+        // cuPressor<<<gridSizeReal, blockSize>>>(workBuffer.getInactiveBuffer(), size, compressionFactor2, volume / (preGain * 2));
 
         workBuffer.copyInactiveBuffer(TO_HOST, samplesOut, size);
     }  else {
@@ -157,6 +162,10 @@ void Compressor::setBandCount(uint count){
     cufftBands->resize(complexWindowSize * bandCount);
     bands->resize(windowSize * bandCount);
     bandCount = count;
+}
+
+void Compressor::setSampleRate(uint rate){
+    sampleRate = rate;
 }
 
 void Compressor::setCompressionFactor1(double& parameter){
