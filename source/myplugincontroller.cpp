@@ -4,7 +4,7 @@
 
 #include "myplugincontroller.h"
 #include "myplugincids.h"
-#include "vstgui/plugin-bindings/vst3editor.h"
+// #include "vstgui/plugin-bindings/vst3editor.h"
 
 using namespace Steinberg;
 
@@ -104,12 +104,12 @@ tresult PLUGIN_API CuPressorController::getState (IBStream* state)
 IPlugView* PLUGIN_API CuPressorController::createView (FIDString name)
 {
 	// Here the Host wants to open your editor (if you have one)
-	if (FIDStringsEqual (name, Vst::ViewType::kEditor))
-	{
-		// create your editor here and return a IPlugView ptr of it
-		auto* view = new VSTGUI::VST3Editor (this, "view", "myplugineditor.uidesc");
-		return view;
-	}
+	// if (FIDStringsEqual (name, Vst::ViewType::kEditor))
+	// {
+	// 	// create your editor here and return a IPlugView ptr of it
+	// 	auto* view = new VSTGUI::VST3Editor (this, "view", "myplugineditor.uidesc");
+	// 	return view;
+	// }
 	return nullptr;
 }
 
