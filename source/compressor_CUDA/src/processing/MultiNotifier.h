@@ -13,7 +13,7 @@ public:
     MultiNotifier(const int observerCount = 1);
     ~MultiNotifier();
 
-    /// @brief Notifies all observers about the message
+    /// @brief Notifies all observers about the message starting from the last registered observer
     /// @param message message to send to the observers
     void notifyObservers(const MESSAGE_TYPE& message);
 
@@ -51,7 +51,7 @@ MultiNotifier<ID_TYPE, MESSAGE_TYPE>::~MultiNotifier(){
 
 template<typename ID_TYPE, typename MESSAGE_TYPE>
 void MultiNotifier<ID_TYPE, MESSAGE_TYPE>::notifyObservers(const MESSAGE_TYPE& message){
-    for(int i = 0; i < count; i++){
+    for (int i = count; i >= 0; i--){
         observers[i]->notify(obtainedIds[i], message);
     }
 }

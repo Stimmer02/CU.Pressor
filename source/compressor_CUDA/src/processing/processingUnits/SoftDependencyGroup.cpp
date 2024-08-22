@@ -16,7 +16,9 @@ ProcessingGroup::~ProcessingGroup() {
 
 void ProcessingGroup::process() {
     for (int i = 0; i < unitsCount; i++){
-        units[i]->process();
+        if (units[i]->isActive()){
+            units[i]->process();
+        }
     }
 }
 
