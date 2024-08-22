@@ -2,6 +2,7 @@
 /build/*
 /source/compressor_CUDA/*
 !/source/compressor_CUDA/src*
+!/source/compressor_CUDA/compressor_CUDA.mdj
 
 
 # FILES
