@@ -2,12 +2,24 @@
 
 #include "IMultiObserver.h"
 
+/// @brief Notifier agregating multiple observers that can be notified
+/// @tparam ID_TYPE type of the id representing the notifier
+/// @tparam MESSAGE_TYPE type of the message that will be sent to the observer
 template<typename ID_TYPE, typename MESSAGE_TYPE>
 class MultiNotifier{
 public:
+    /// @brief Constructor
+    /// @param observerCount preallocated size of the observer group (resize is time expensive)
     MultiNotifier(const int observerCount = 1);
     ~MultiNotifier();
+
+    /// @brief Notifies all observers about the message
+    /// @param message message to send to the observers
     void notifyObservers(const MESSAGE_TYPE& message);
+
+    /// @brief Registers an observer to the notifier
+    /// @param observer observer to register
+    /// @param id id acquired from the observer to identify it
     void registerObserver(IMultiObserver<ID_TYPE, MESSAGE_TYPE>* observer, ID_TYPE id);
 
 private:
@@ -16,6 +28,8 @@ private:
     int count;
     int allocated;
 
+    /// @brief Resizes the observer group
+    /// @param newSize new size of the observer group
     void resize(int newSize);
 };
 
