@@ -20,7 +20,7 @@ public:
 
 private:
     std::vector<AProcessingUnit*> processingUnits;
-    std::vector<bool> processingUnitsStatus;
+    std::vector<int> unitsToQueueIndexMap;
     std::vector<AProcessingUnit*> queue;
 
     /// @brief Notifies the ProcessingQueue about the state change of a processing unit
