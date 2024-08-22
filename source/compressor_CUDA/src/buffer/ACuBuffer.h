@@ -21,7 +21,7 @@ typedef unsigned int uint;
 template <typename TYPE>
 class ACuBuffer{
 public:
-        ACuBuffer() = default;
+    ACuBuffer() = default;
     virtual ~ACuBuffer() = default;
 
     virtual uint getSize() const = 0;
@@ -44,7 +44,7 @@ public:
 
     virtual void resize(uint newSize) = 0;
 
-// protected:
+// protected: //TODO: test if I can use protected
     uint size;
     uint allocatedSize;
 
