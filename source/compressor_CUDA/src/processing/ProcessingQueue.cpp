@@ -1,8 +1,8 @@
 #include "ProcessingQueue.h"
 
 void ProcessingQueue::execute(){
-    for (AProcessingUnit* unit : queue){
-        unit->process();
+    for (int i = 0; i < queue.size(); i++){
+        queue[i]->process();
     }
 }
 
@@ -20,16 +20,21 @@ void ProcessingQueue::appendQueue(AProcessingUnit* unit){
 void ProcessingQueue::notify(const int& senderId, const bool& message){
     if (message){
         if (unitsToQueueIndexMap[senderId] != -1){
-            throw std::exception("ProcessingQueue::notify: Processing unit already in the queue");
+            throw std::runtime_error("ProcessingQueue::notify: Processing unit already in the queue");
         }
-        int index = senderId;
+        int index = senderId - 1;
         for (; index >= 0; index--){
             if (unitsToQueueIndexMap[index] != -1){
                 break;
             }
         }
-        queue.insert(queue.begin() + unitsToQueueIndexMap[index] + 1, processingUnits[senderId]);
-        unitsToQueueIndexMap[senderId] = unitsToQueueIndexMap[index] + 1;
+        if (index == -1){
+            queue.insert(queue.begin(), processingUnits[senderId]);
+            unitsToQueueIndexMap[senderId] = 0;
+        } else {
+            queue.insert(queue.begin() + unitsToQueueIndexMap[index] + 1, processingUnits[senderId]);
+            unitsToQueueIndexMap[senderId] = unitsToQueueIndexMap[index] + 1;
+        }
         for (int i = senderId + 1; i < unitsToQueueIndexMap.size(); i++){
             if (unitsToQueueIndexMap[i] != -1){
                 unitsToQueueIndexMap[i]++;
@@ -37,9 +42,14 @@ void ProcessingQueue::notify(const int& senderId, const bool& message){
         }
     } else {
         if (unitsToQueueIndexMap[senderId] == -1){
-            throw std::exception("ProcessingQueue::notify: Processing unit not found in the queue");
+            throw std::runtime_error("ProcessingQueue::notify: Processing unit not found in the queue");
         }
         queue.erase(queue.begin() + unitsToQueueIndexMap[senderId]);
         unitsToQueueIndexMap[senderId] = -1;
+        for (int i = senderId + 1; i < unitsToQueueIndexMap.size(); i++){
+            if (unitsToQueueIndexMap[i] != -1){
+                unitsToQueueIndexMap[i]--;
+            }
+        }
     }
 }

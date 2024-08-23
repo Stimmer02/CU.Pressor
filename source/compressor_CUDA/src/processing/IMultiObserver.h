@@ -1,5 +1,8 @@
 #pragma once
 
+template<typename ID_TYPE, typename MESSAGE_TYPE>
+class MultiNotifier;
+
 /// @brief Interface for an observer that can be notified by a MultiNotifier
 /// @tparam ID_TYPE type of the id representing the notifier
 /// @tparam MESSAGE_TYPE type of the message that will be sent to the observer

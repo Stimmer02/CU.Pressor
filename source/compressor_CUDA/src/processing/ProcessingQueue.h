@@ -4,6 +4,7 @@
 #include "processingUnits/AProcessingUnit.h"
 
 #include <vector>
+#include <stdexcept>
 
 /// @brief Class that manages processing units and their execution order. Inspired by strategy design pattern.
 class ProcessingQueue : public IMultiObserver<int, bool>{

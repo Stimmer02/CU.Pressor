@@ -1,20 +1,20 @@
 #include "SoftDependencyGroup.h"
 
-ProcessingGroup::ProcessingGroup(int unitsCount) {
-    if (unitsCount < 1){
-        unitsCount = 1;
+SoftDependencyGroup::SoftDependencyGroup(int preallocatedSize) : AProcessingUnit(){
+    if (preallocatedSize < 1){
+        preallocatedSize = 1;
     }
     unitsCount = 0;
-    unitsAllocated = unitsCount;
-    units = new AProcessingUnit*[unitsCount];
+    unitsAllocated = preallocatedSize;
+    units = new AProcessingUnit*[preallocatedSize];
     
 }
 
-ProcessingGroup::~ProcessingGroup() {
+SoftDependencyGroup::~SoftDependencyGroup() {
     delete[] units;
 }
 
-void ProcessingGroup::process() {
+void SoftDependencyGroup::process() {
     for (int i = 0; i < unitsCount; i++){
         if (units[i]->isActive()){
             units[i]->process();
@@ -22,17 +22,17 @@ void ProcessingGroup::process() {
     }
 }
 
-void ProcessingGroup::registerUnit(AProcessingUnit* unit) {
+void SoftDependencyGroup::registerUnit(AProcessingUnit* unit) {
     if (unitsAllocated == unitsCount){
         resize(unitsCount + 1);
     }
 
     units[unitsCount] = unit;
-    unit->registerObserver(this, unitsCount);
     unitsCount++;
+    registerDependency(unit);
 }
 
-void ProcessingGroup::resize(int newSize){
+void SoftDependencyGroup::resize(int newSize){
     AProcessingUnit** newUnits = new AProcessingUnit*[newSize];
     AProcessingUnit** oldUnits = units;
     for (int i = 0; i < unitsCount; i++){
@@ -43,10 +43,10 @@ void ProcessingGroup::resize(int newSize){
     delete[] oldUnits;
 }
 
-inline bool ProcessingGroup::activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
+inline bool SoftDependencyGroup::activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
     return active == false;
 }
 
-inline bool ProcessingGroup::deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
+inline bool SoftDependencyGroup::deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
     return activeDependencies == 0;
 }

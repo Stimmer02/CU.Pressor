@@ -2,7 +2,7 @@
 
 #include "IMultiObserver.h"
 
-/// @brief Notifier agregating multiple observers that can be notified
+/// @brief Notifier aggregating multiple observers that can be notified
 /// @tparam ID_TYPE type of the id representing the notifier
 /// @tparam MESSAGE_TYPE type of the message that will be sent to the observer
 template<typename ID_TYPE, typename MESSAGE_TYPE>
@@ -51,7 +51,7 @@ MultiNotifier<ID_TYPE, MESSAGE_TYPE>::~MultiNotifier(){
 
 template<typename ID_TYPE, typename MESSAGE_TYPE>
 void MultiNotifier<ID_TYPE, MESSAGE_TYPE>::notifyObservers(const MESSAGE_TYPE& message){
-    for (int i = count; i >= 0; i--){
+    for (int i = count - 1; i >= 0; i--){
         observers[i]->notify(obtainedIds[i], message);
     }
 }
