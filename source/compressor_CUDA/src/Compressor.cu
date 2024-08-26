@@ -107,7 +107,7 @@ void Compressor::compress(float* samplesIn, float* samplesOut, uint size){
         cufftExecC2R(cufftC2R, cufftBands, bands);
 
         cuPressorBath<<<gridSizeReal2D, blockSize>>>(bands, size, compressionFactor1, 1.0 / windowSize, addressShift);
-        bandMerge<<<gridSizeReal2D, blockSize>>>(bands, workBuffer.getInactiveBuffer(), addressShift, size, bandCount);
+        bandMerge<<<gridSizeReal, blockSize>>>(bands, workBuffer.getInactiveBuffer(), addressShift, size, bandCount);
 
         volumeControl<<<gridSizeReal, blockSize>>>(workBuffer.getInactiveBuffer(), size, volume / (preGain * 2));
         cuPressor<<<gridSizeReal, blockSize>>>(workBuffer.getInactiveBuffer(), size, compressionFactor2, volume / (preGain * 2));
@@ -184,7 +184,7 @@ void Compressor::generateBandMasks(){
         // printf("Band %d: %.04f - %.04f\n", i, startFrequency, endFrequency);
     
         for (int j = 1; j < complexWindowSize - 1; j++){
-            float frequency = (float)j / (float)windowSize * (float)sampleRate;
+            float frequency = (float)j / (float)complexWindowSize * (float)sampleRate;
             if (frequency < startFrequency + previousbandHalfWidth){ //TODO: check which condition will be more frequent
                 float valueBelow = startFrequency + previousbandHalfWidth - frequency;
                 if (valueBelow > previousbandHalfWidth * 2){
