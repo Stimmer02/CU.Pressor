@@ -18,7 +18,7 @@ void ProcessingUnit_volume::process(){
 
 void ProcessingUnit_volume::setVolume(float volume){
     this->volume = volume;
-    setActive(volume == 1.0f);
+    setActive(volume != 1.0f);
 }
 
 float ProcessingUnit_volume::getVolume() const{

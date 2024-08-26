@@ -34,11 +34,11 @@ void AProcessingUnit::setActive(bool active){
     }
 }
 
-inline bool AProcessingUnit::activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
+bool AProcessingUnit::activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
     return activeDependencies == dependenciesSize;
 }
 
-inline bool AProcessingUnit::deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
+bool AProcessingUnit::deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
     return active;
 }
 

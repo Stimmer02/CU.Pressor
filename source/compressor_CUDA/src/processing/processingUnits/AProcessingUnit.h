@@ -39,14 +39,14 @@ protected:
     /// @param activeDependencies number of active dependencies 
     /// @param dependenciesSize number of all dependencies
     /// @return true if the unit should be activated
-    virtual inline bool activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const;
+    virtual bool activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const;
 
     /// @brief Called by notify method on every dependency deactivation to determine if the processing unit should be deactivated
     /// @param active unit state
     /// @param activeDependencies number of active dependencies 
     /// @param dependenciesSize number of all dependencies
     /// @return true if the unit should be deactivated 
-    virtual inline bool deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const;
+    virtual bool deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const;
 
 private:
     std::vector<AProcessingUnit*> dependencies;

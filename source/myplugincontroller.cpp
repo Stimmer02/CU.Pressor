@@ -25,41 +25,24 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 	}
 
 	parameters.addParameter(
-		STR16("Compression1"),    // Parameter title
+		STR16("Compression"),    // Parameter title
 		nullptr,          // Parameter units (optional)
 		0,                // Step count (0 means continuous)
 		0.4,              // Default value (in normalized range [0,1])
 		Vst::ParameterInfo::kCanAutomate, // Flags (this one makes it automatable)
 		0,                // Parameter ID
 		0,                // Parameter group (optional)
-		STR16("Comp1"));   // Short title (optional)
-	parameters.addParameter(
-		STR16("Compression2"),
-		nullptr,          
-		0,                
-		0.4,              
-		Vst::ParameterInfo::kCanAutomate, 
-		1,                
-		0,                
-		STR16("Comp2"));   
+		STR16("Comp"));   // Short title (optional)
 	parameters.addParameter(
 		STR16("Volume"),   
 		nullptr,          
 		0,               
 		1.0,              
 		Vst::ParameterInfo::kCanAutomate, 
-		2,                
+		1,                
 		0,              
 		STR16("Vol"));
-	parameters.addParameter(
-		STR16("PreGain"),   
-		nullptr,          
-		0,               
-		0.5,              
-		Vst::ParameterInfo::kCanAutomate, 
-		3,                
-		0,              
-		STR16("PGain"));
+
 
 	return result;
 }
