@@ -21,13 +21,13 @@ void AProcessingUnit::setActive(bool active){
         return;
     }
     hardDeactivation = !active;
-    if (active){
+    if (active == true){
         if (activationFunction(this->active, activeDependencies, dependencies.size())){
             this->active = true;
             notifier.notifyObservers(true);
         }
     } else {
-        if (this->active){
+        if (this->active == true){
             this->active = false;
             notifier.notifyObservers(false);
         }

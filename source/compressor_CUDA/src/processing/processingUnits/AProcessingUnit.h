@@ -31,7 +31,7 @@ protected:
     MultiNotifier<int, bool> notifier;
 
     /// @brief Sets the hard deactivation flag. Both dependencies and the hard deactivation flag have to allow the unit to be active
-    /// @param active if true the unit will be deactivated until the flag is set to false
+    /// @param active if false then the unit will be deactivated until the flag is set to true
     void setActive(bool active);
 
     /// @brief Called by notify method on every dependency activation to determine if the processing unit should be activated
