@@ -27,7 +27,7 @@ class COMPRESSOR_API Compressor2{
 public:
 
     /// @brief Constructor
-    Compressor2(const uint& bandCount = 8, const uint& windowSize = 1024, const uint& sampleRate = 44100);
+    Compressor2(const uint& bandCount = 8, const uint& windowSize = 4096, const uint& sampleRate = 44100);
 
     ~Compressor2();
 

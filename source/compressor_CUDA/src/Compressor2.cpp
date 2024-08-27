@@ -2,7 +2,7 @@
 
 Compressor2::Compressor2(const uint& bandCount, const uint& windowSize, const uint& sampleRate){
     settings.bandCount = bandCount;
-    settings.bandCount = 1;
+    // settings.bandCount = 2;
     settings.windowSize = 0;
     settings.sampleRate = 0;
     settings.processingSize = 0;
@@ -92,6 +92,7 @@ void Compressor2::setWindowSize(uint size){
     settings.windowSize = size;
     settings.complexWindowSize = size / 2 + 1;
     settings.addressShift = settings.windowSize - settings.processingSize;
+    calculateKernelSize();
     resize(size);
     units.fftBandSplit->generateBandSplittingTable();
 
@@ -135,7 +136,7 @@ void Compressor2::resize(uint size, uint complexSize){
     buffers.cufftBands->resize(complexSize * settings.bandCount);
     bufferPointers.d_cufftBands = *buffers.cufftBands;
 
-    buffers.bands->resize(size);
+    buffers.bands->resize(size * settings.bandCount);
     bufferPointers.d_bands = *buffers.bands;
 }
 

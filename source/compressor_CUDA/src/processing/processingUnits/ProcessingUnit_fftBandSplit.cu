@@ -37,18 +37,18 @@ void ProcessingUnit_fftBandSplit::generateBandSplittingTable(){
     uint bandCount = gridSize2D.y;
     bandMasks->resize(bandCount * complexWindowSize);
     float* masks = new float[bandCount * complexWindowSize];
-    float maxFrequency = 40000.0;
+    float maxFrequency = 25000.0;
     float minFrequency = 20.0;
     float sizeRatio = std::pow(maxFrequency / minFrequency, 1.0 / bandCount);
-    float maskMinValue = 0.05;
+    float maskMinValue = 0.00;
     float previousbandHalfWidth = 0;
-    for (int i = 0; i < bandCount; i++){
+    for (int i = 0; i < bandCount - 1; i++){
         float startFrequency = minFrequency * std::pow(sizeRatio, i);
         float endFrequency = minFrequency * std::pow(sizeRatio, i + 1);
         float bandHalfWidth = (endFrequency - startFrequency) / 2;
-        printf("Band %d: %.04f - %.04f\n", i, startFrequency, endFrequency);
+        // printf("Band %d: %.04f - %.04f\n", i, startFrequency, endFrequency);
     
-        for (int j = 1; j < complexWindowSize - 1; j++){
+        for (int j = 0; j < complexWindowSize; j++){
             float frequency = (float)j / (float)complexWindowSize * (float)sampleRate;
             if (frequency > endFrequency - bandHalfWidth){
                 float valueAbove = frequency - (endFrequency - bandHalfWidth);
@@ -69,15 +69,30 @@ void ProcessingUnit_fftBandSplit::generateBandSplittingTable(){
             } else {
                 masks[i * complexWindowSize + j] = 1;
             }
-            if (frequency > startFrequency - previousbandHalfWidth && frequency < endFrequency + bandHalfWidth){
-                printf("   %.04f, %.04f\n", frequency, masks[i * complexWindowSize + j]);
-            }
+            // if (frequency > startFrequency - previousbandHalfWidth && frequency < endFrequency + bandHalfWidth){
+            //     printf("   %.04f, %.04f\n", frequency, masks[i * complexWindowSize + j]);
+            // }
         }
-        masks[i * complexWindowSize] = 1;
-        masks[i * complexWindowSize + complexWindowSize - 1] = 1;
+        // masks[i * complexWindowSize] = 1;
+        // masks[i * complexWindowSize + complexWindowSize - 1] = 1;
         previousbandHalfWidth = bandHalfWidth;
     }
+    float startFrequency = minFrequency * std::pow(sizeRatio, bandCount - 1);
+    for (int j = 0; j < complexWindowSize; j++){
+        float frequency = (float)j / (float)complexWindowSize * (float)sampleRate;
+        if (frequency < startFrequency + previousbandHalfWidth){
+            float valueBelow = startFrequency + previousbandHalfWidth - frequency;
+            if (valueBelow > previousbandHalfWidth * 2){
+                masks[(bandCount - 1) * complexWindowSize + j] = maskMinValue;
+            } else {
+                masks[(bandCount - 1) * complexWindowSize + j] = softSignDescend(valueBelow, maskMinValue, previousbandHalfWidth * 2);
+            }
 
+        } else {
+            masks[(bandCount - 1) * complexWindowSize + j] = 1;
+        }
+    }
+    
     bandMasks->copyBuffer(FROM_HOST, masks, bandCount * complexWindowSize);
     delete[] masks;
 }
