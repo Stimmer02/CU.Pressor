@@ -14,7 +14,13 @@
 #include "processing/ProcessingQueue.h"
 #include "processing/processingUnits/ProcessingUnit_volume.h"
 #include "processing/processingUnits/ProcessingUnit_cuPressor.h"
+#include "processing/processingUnits/ProcessingUnit_cuPressorBatch.h"
+#include "processing/processingUnits/ProcessingUnit_fftR2C.h"
+#include "processing/processingUnits/ProcessingUnit_fftC2R.h"
+#include "processing/processingUnits/ProcessingUnit_fftBandSplit.h"
+#include "processing/processingUnits/ProcessingUnit_fftBandMerge.h"
 
+#include <cufft.h>
 
 /// @brief Class that performs softsign-like multiband compression using CUDA
 class COMPRESSOR_API Compressor2{
@@ -55,7 +61,7 @@ public:
 private:
     /// @brief Resizes the buffers
     /// @param size new size of the buffers
-	void resize(uint size);
+	void resize(uint size, uint complexSize = 0);
 
     /// @brief Calculates size of the kernels based on settings
     void calculateKernelSize();
@@ -92,26 +98,41 @@ private:
     } settings;
 
     struct {
-        uint blockReal;
+        uint block;
         uint gridReal;
+        dim3 gridReal2D;
+        uint gridComplex;
+        dim3 gridComplex2D;
     } kernelSize;
 
     struct {
         CuShiftBuffer<float>* workBuffer;
+        ACuBuffer<cufftComplex>* cufftOutput;
+        ACuBuffer<cufftComplex>* cufftBands;
+        ACuBuffer<float>* bands;
     } buffers;
-    // ACuBuffer<cufftComplex>* cufftOutput;
-    // ACuBuffer<cufftComplex>* cufftBands;
-    // ACuBuffer<float>* bands;
-    // cufftHandle cufftR2C;
-    // cufftHandle cufftC2R;
 
     struct {
         float* d_workBuffer; 
+        cufftComplex* d_cufftOutput;
+        cufftComplex* d_cufftBands;
+        float* d_bands;
+        float* d_output;
     } bufferPointers;
+
+    struct {
+        cufftHandle R2C;
+        cufftHandle C2R;
+    } fft;
 
     ProcessingQueue processingQueue;
     
     struct {
+        ProcessingUnit_fftR2C* fftR2C;
+        ProcessingUnit_fftBandSplit* fftBandSplit;
+        ProcessingUnit_cuPressorBatch* cuPressorBatch;
+        ProcessingUnit_fftC2R* fftC2R;
+        ProcessingUnit_fftBandMerge* fftBandMerge;
         ProcessingUnit_cuPressor* cuPressor;
         ProcessingUnit_volume* volume;
     } units;

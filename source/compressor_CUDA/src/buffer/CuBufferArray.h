@@ -17,7 +17,7 @@ public:
     TYPE** getBuffers(uint addressOffset);
 
 private:
-    cosnt uint bufferCount;
+    const uint bufferCount;
     ACuBuffer<TYPE>** buffers;
 
     TYPE** d_bufferPointerArr;

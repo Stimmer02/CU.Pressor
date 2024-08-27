@@ -17,6 +17,9 @@ public:
     void setBuffer(TYPE*& d_buffer, uint size, uint allocatedSize = 0) override;
 
 protected:
+    using ACuBuffer<TYPE>::size;
+    using ACuBuffer<TYPE>::allocatedSize;
+
     TYPE* d_buffer;
 
     void setSize(uint size) override;

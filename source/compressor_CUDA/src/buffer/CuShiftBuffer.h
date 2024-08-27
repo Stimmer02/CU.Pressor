@@ -22,13 +22,16 @@ public:
     void setBuffer(TYPE*& d_buffer, uint size, uint allocatedSize = 0) override;
 
 private:
+    using ACuBuffer<TYPE>::size;
+    using ACuBuffer<TYPE>::allocatedSize;
+
     bool activeBuffer;
-    ACuBuffer* buffer[2];
+    ACuBuffer<TYPE>* buffer[2];
 
     void setSize(uint size) override;
     void setAllocatedSize(uint allocatedSize) override;
     void setBufferToNull() override;
-    TYPE* getBufferOvnership();
+    TYPE* getBufferOvnership() override;
 
     void deallocate() override;
     void allocate(uint size) override;

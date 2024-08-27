@@ -1,4 +1,4 @@
-#include "ProcessingUnit_cuPressorBath.h"
+#include "ProcessingUnit_cuPressorBatch.h"
 
 __global__ void cuPressorBath(float* data, int size, float* factors, float volume, int addressShift){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -9,7 +9,7 @@ __global__ void cuPressorBath(float* data, int size, float* factors, float volum
     }
 }
 
-ProcessingUnit_cuPressorBath::ProcessingUnit_cuPressorBath(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize, const uint bandCount, const uint& addressShift)
+ProcessingUnit_cuPressorBatch::ProcessingUnit_cuPressorBatch(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize, const uint bandCount, const uint& addressShift)
     : d_workBuffer(d_workBuffer), gridSize(gridSize), blockSize(blockSize), bufferSize(bufferSize), addressShift(addressShift), bandCount(bandCount) {
     preGain = 1;
     
@@ -23,16 +23,16 @@ ProcessingUnit_cuPressorBath::ProcessingUnit_cuPressorBath(float*& d_workBuffer,
     cudaMemcpy(d_compressionFactors, compressionFactors, bandCount * sizeof(float), cudaMemcpyHostToDevice);
 }
 
-ProcessingUnit_cuPressorBath::~ProcessingUnit_cuPressorBath(){
+ProcessingUnit_cuPressorBatch::~ProcessingUnit_cuPressorBatch(){
     cudaFree(d_compressionFactors);
     delete[] compressionFactors;
 }
 
-void ProcessingUnit_cuPressorBath::process(){
+void ProcessingUnit_cuPressorBatch::process(){
     cuPressorBath<<<(gridSize, bandCount), blockSize>>>(d_workBuffer, bufferSize, d_compressionFactors, preGain, addressShift);
 }
 
-void ProcessingUnit_cuPressorBath::setCompressionFactor(uint bandIndex, float factor){
+void ProcessingUnit_cuPressorBatch::setCompressionFactor(uint bandIndex, float factor){
     static const float minValue = 0.001;
 
     if (bandIndex >= bandCount){
@@ -57,18 +57,18 @@ void ProcessingUnit_cuPressorBath::setCompressionFactor(uint bandIndex, float fa
     cudaMemcpy(d_compressionFactors + bandIndex, &factor, sizeof(float), cudaMemcpyHostToDevice);
 }
 
-float ProcessingUnit_cuPressorBath::getCompressionFactor(uint bandIndex) const{
+float ProcessingUnit_cuPressorBatch::getCompressionFactor(uint bandIndex) const{
     if (bandIndex >= bandCount){
         return INFINITY;
     }
     return compressionFactors[bandIndex];
 }
 
-void ProcessingUnit_cuPressorBath::setPreGain(float gain){
+void ProcessingUnit_cuPressorBatch::setPreGain(float gain){
     preGain = gain;
 }
 
-float ProcessingUnit_cuPressorBath::getPreGain() const{
+float ProcessingUnit_cuPressorBatch::getPreGain() const{
     return preGain;
 }
 

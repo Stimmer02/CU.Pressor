@@ -9,7 +9,7 @@ __global__ void cuPressor(float* data, int size, float factor){
 
 ProcessingUnit_cuPressor::ProcessingUnit_cuPressor(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize)
     : d_workBuffer(d_workBuffer), gridSize(gridSize), blockSize(blockSize), bufferSize(bufferSize){
-    compressionFactor = 0.0f;
+    setCompressionFactor(0.0f);
 }
 
 void ProcessingUnit_cuPressor::process(){

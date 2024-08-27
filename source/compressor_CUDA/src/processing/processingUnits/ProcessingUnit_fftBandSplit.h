@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AProcessingUnit.h"
-#include "buffer/CuBufferFactory.h"
+#include "../../buffer/CuBufferFactory.h"
 
 #include <cufft.h>
 #include <cmath>

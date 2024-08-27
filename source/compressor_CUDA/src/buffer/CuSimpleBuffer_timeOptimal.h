@@ -10,5 +10,10 @@ public:
     CuSimpleBuffer_timeOptimal(ACuBuffer<TYPE>*& cuBuffer);
 
     void resize(uint newSize) override;
+
+private:
+    using ACuSimpleBuffer<TYPE>::size;
+    using ACuSimpleBuffer<TYPE>::allocatedSize;
+    using ACuSimpleBuffer<TYPE>::d_buffer;
 };
 

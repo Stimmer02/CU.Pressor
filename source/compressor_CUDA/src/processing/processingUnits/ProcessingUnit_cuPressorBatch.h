@@ -8,15 +8,15 @@
 typedef unsigned int uint;
 
 /// @brief Processing unit that increases or decrases momentary volume using softsigh-like function
-class ProcessingUnit_cuPressorBath : public AProcessingUnit{
+class ProcessingUnit_cuPressorBatch : public AProcessingUnit{
 public:
     /// @brief Constructor
     /// @param d_workBuffer reference to the device buffer to be processed (in/out) 
     /// @param blockSize reference to choosen block size
     /// @param bufferSize reference to the buffer lenght that is being processed
-    ProcessingUnit_cuPressorBath(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize, const uint bandCount, const uint& addressShift);
+    ProcessingUnit_cuPressorBatch(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize, const uint bandCount, const uint& addressShift);
 
-    ~ProcessingUnit_cuPressorBath();
+    ~ProcessingUnit_cuPressorBatch();
 
     /// @brief Applies compression to the buffer
     void process() override;
