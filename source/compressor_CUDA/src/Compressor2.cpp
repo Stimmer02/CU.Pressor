@@ -7,7 +7,10 @@ Compressor2::Compressor2(const uint& bandCount, const uint& windowSize, const ui
     settings.processingSize = 0;
     settings.complexWindowSize = 0;
 
-    buffers.workBuffer = new CuShiftBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
+    buffers.workBuffer = new CuShiftBuffer<float>[2];
+    for (int i = 0; i < 2; i++){
+        buffers.workBuffer[i] = CuShiftBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
+    }
 
     units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_workBuffer, kernelSize.gridReal, kernelSize.blockReal, settings.processingSize);
     units.volume = new ProcessingUnit_volume(bufferPointers.d_workBuffer, kernelSize.gridReal, kernelSize.blockReal, settings.processingSize);
@@ -20,34 +23,34 @@ Compressor2::Compressor2(const uint& bandCount, const uint& windowSize, const ui
 }
 
 Compressor2::~Compressor2(){
-    delete buffers.workBuffer;
+    delete[] buffers.workBuffer;
     delete units.cuPressor;
     delete units.volume;
 }
 
-void Compressor2::compress(float* samplesIn, float* samplesOut, uint size){
+void Compressor2::compress(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     if (size <= settings.windowSize){
-        processSingleWindow(samplesIn, samplesOut, size);
+        processSingleWindow(samplesIn, samplesOut, size, channelNumber);
     } else {
-        processMultipleWindows(samplesIn, samplesOut, size);
+        processMultipleWindows(samplesIn, samplesOut, size, channelNumber);
     }
     cudaDeviceSynchronize();
 }
 
-void Compressor2::processSingleWindow(float* samplesIn, float* samplesOut, uint size){
+void Compressor2::processSingleWindow(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     setProcessingSize(size);
-    buffers.workBuffer->pushBack(FROM_HOST, samplesIn, size);
-    bufferPointers.d_workBuffer = (*buffers.workBuffer)[settings.addressShift];
+    buffers.workBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
+    bufferPointers.d_workBuffer = buffers.workBuffer[channelNumber][settings.addressShift];
 
     processingQueue.execute();
 
-    buffers.workBuffer->copyBuffer(TO_HOST, samplesOut, size, settings.addressShift);
+    buffers.workBuffer[channelNumber].copyBuffer(TO_HOST, samplesOut, settings.processingSize, settings.addressShift);
 }
 
-void Compressor2::processMultipleWindows(float* samplesIn, float* samplesOut, uint size){
+void Compressor2::processMultipleWindows(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     int leftToProcess = size;
     for (int i = 0; i < size - settings.windowSize; i += settings.windowSize){
-        processSingleWindow(samplesIn + i, samplesOut + i, (leftToProcess > settings.windowSize) ? settings.windowSize : leftToProcess);
+        processSingleWindow(samplesIn + i, samplesOut + i, (leftToProcess > settings.windowSize) ? settings.windowSize : leftToProcess, channelNumber);
         leftToProcess -= settings.windowSize;
     }
 }
@@ -67,8 +70,9 @@ void Compressor2::setSampleRate(uint rate){
 }
 
 void Compressor2::resize(uint size){
-    buffers.workBuffer->resize(size);
-    bufferPointers.d_workBuffer = *buffers.workBuffer;
+    buffers.workBuffer[0].resize(size);
+    buffers.workBuffer[1].resize(size);
+    bufferPointers.d_workBuffer = buffers.workBuffer[0];
 }
 
 void Compressor2::calculateKernelSize(){

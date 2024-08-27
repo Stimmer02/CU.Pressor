@@ -31,12 +31,12 @@ void CuShiftBuffer<TYPE>::shift(uint shiftSize){
 }
 
 template <typename TYPE>
-void CuShiftBuffer<TYPE>::pushBack(originType origin, TYPE* d_arr, uint size){
+void CuShiftBuffer<TYPE>::pushBack(originType origin, const TYPE*& arr, uint size){
     if (size >= getSize()){
-        cudaMemcpy(buffer[activeBuffer]->getBuffer(), d_arr, getSize() * sizeof(TYPE), (cudaMemcpyKind)origin);
+        cudaMemcpy(buffer[activeBuffer]->getBuffer(), arr, getSize() * sizeof(TYPE), (cudaMemcpyKind)origin);
     } else {
         shift(size);
-        cudaMemcpy(buffer[activeBuffer]->getBuffer() + buffer[activeBuffer]->getSize() - size, d_arr, size * sizeof(TYPE), (cudaMemcpyKind)origin); 
+        cudaMemcpy(buffer[activeBuffer]->getBuffer() + buffer[activeBuffer]->getSize() - size, arr, size * sizeof(TYPE), (cudaMemcpyKind)origin); 
     }
 }
 

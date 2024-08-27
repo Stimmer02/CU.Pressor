@@ -10,11 +10,11 @@ int main(){
     float samplesIn[1024*5];
     float samplesOut[1024*5];
     printf("Compressing samples 1\n");
-    compressor.compress(samplesIn, samplesOut, 1024);
+    compressor.compress(samplesIn, samplesOut, 1024, 0);
     printf("Compressing samples 2\n");
-    compressor.compress(samplesIn, samplesOut, 1024*2);
+    compressor.compress(samplesIn, samplesOut, 1024*2, 1);
     printf("Compressing samples 3\n");
-    compressor.compress(samplesIn, samplesOut, 1024*5);
+    compressor.compress(samplesIn, samplesOut, 1024*5, 0);
     printf("Compressor created successfully\n");
     return 0;
 }

@@ -29,7 +29,8 @@ public:
     /// @param samplesIn data to be processed
     /// @param samplesOut result of the processing
     /// @param size size of the input and output buffer
-    void compress(float* samplesIn, float* samplesOut, uint size);
+    /// @param channelNumber number identifying the channel that is being processed (0 - left, 1 - right)
+    void compress(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber);
 
     /// @brief Sets size of the time window used for processing
     /// @param size size of the time window in samples
@@ -63,17 +64,23 @@ private:
     /// @param size amount of samples to be processed
     void setProcessingSize(uint size);
 
+    /// @brief Sets the amount of channels to be processed in parallel
+    /// @param count amount of channels
+    void setChannelCount(uint count);
+
     /// @brief Processes a single time window
     /// @param samplesIn data to be processed
     /// @param samplesOut result of the processing
     /// @param size size of the input and output buffer
-    void processSingleWindow(float* samplesIn, float* samplesOut, uint size);
+    /// @param channelNumber number identifying the channel that is being processed
+    void processSingleWindow(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber);
 
     /// @brief Processes multiple time windows (if size > windowSize)
     /// @param samplesIn data to be processed
     /// @param samplesOut result of the processing
     /// @param size size of the input and output buffer
-    void processMultipleWindows(float* samplesIn, float* samplesOut, uint size);
+    /// @param channelNumber number identifying the channel that is being processed
+    void processMultipleWindows(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber);
 
     struct {
         uint bandCount;         // amount of frequency bands
@@ -90,7 +97,7 @@ private:
     } kernelSize;
 
     struct {
-        CuShiftBuffer<float>* workBuffer;// TODO: allow processing multiple channels
+        CuShiftBuffer<float>* workBuffer;
     } buffers;
     // ACuBuffer<cufftComplex>* cufftOutput;
     // ACuBuffer<cufftComplex>* cufftBands;

@@ -109,10 +109,13 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 		int32 minBus = std::min (data.numInputs, data.numOutputs);
 		for (int32 i = 0; i < minBus; i++)
 		{
-			int32 minChan = std::min (data.inputs[i].numChannels, data.outputs[i].numChannels);
+			int32 minChan = std::min(data.inputs[i].numChannels, data.outputs[i].numChannels);
+			// it can take max 2 channels due to use of shift buffer and computation overhead
+			// TODO: implement overly complicated CUDA shift buffer capable of handling more than a single channel nad reimplement every single computation kernel for parallel channel processing
+			minChan = std::min(minChan, 2); 
 			for (int32 c = 0; c < minChan; c++)
 			{
-				compressor.compress(data.inputs[i].channelBuffers32[c], data.outputs[i].channelBuffers32[c], data.numSamples);
+				compressor.compress(data.inputs[i].channelBuffers32[c], data.outputs[i].channelBuffers32[c], data.numSamples, c);
 			}
 			data.outputs[i].silenceFlags = data.inputs[i].silenceFlags;
 				

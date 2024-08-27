@@ -9,7 +9,7 @@ public:
     ~CuShiftBuffer() override;
     
     void shift(uint shiftSize);
-    void pushBack(originType origin, TYPE* d_arr, uint size);
+    void pushBack(originType origin, const TYPE*& arr, uint size);
     TYPE* getInactiveBuffer(uint index = 0) const;
     void copyInactiveBuffer(destinationType destination, TYPE* d_buffer, uint size = 0, uint index = 0) const;
 
