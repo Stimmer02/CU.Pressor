@@ -30,7 +30,7 @@ public:
     virtual void setBuffer(ACuBuffer<TYPE>*& cuBuffer) = 0;
     virtual void setBuffer(TYPE*& d_buffer, uint size, uint allocatedSize = 0) = 0;
     virtual void copyBuffer(const ACuBuffer<TYPE>& cuBuffer);
-    virtual void copyBuffer(originType origin, const TYPE* buffer, uint size);
+    virtual void copyBuffer(originType origin, const TYPE* buffer, uint size, uint index = 0);
     virtual void copyBuffer(destinationType destination, TYPE* buffer, uint size = 0, uint index = 0) const;
     virtual bool compare(const ACuBuffer<TYPE>& cuBuffer) const;
     virtual void clear();

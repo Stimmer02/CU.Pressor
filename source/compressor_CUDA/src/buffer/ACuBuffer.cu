@@ -67,15 +67,15 @@ void ACuBuffer<TYPE>::copyBuffer(const ACuBuffer<TYPE>& cuBuffer){
 }
 
 template <typename TYPE>
-void ACuBuffer<TYPE>::copyBuffer(originType origin, const TYPE* buffer, uint size){
+void ACuBuffer<TYPE>::copyBuffer(originType origin, const TYPE* buffer, uint size, uint index){
     resize(size);
-    cudaMemcpy(getBuffer(), buffer, size * sizeof(TYPE), (cudaMemcpyKind)origin);
+    cudaMemcpy(getBuffer() + index * sizeof(TYPE), buffer, size * sizeof(TYPE), (cudaMemcpyKind)origin);
 }
 
 template <typename TYPE>
 void ACuBuffer<TYPE>::copyBuffer(destinationType destination, TYPE* buffer, uint size, uint index) const {
     size = size == 0 ? getSize() : std::min(size, getSize() - index);
-    cudaMemcpy(buffer, getBuffer() + index, size * sizeof(TYPE), (cudaMemcpyKind)destination);
+    cudaMemcpy(buffer, getBuffer() + index * sizeof(TYPE), size * sizeof(TYPE), (cudaMemcpyKind)destination);
 }
 
 template <typename TYPE>

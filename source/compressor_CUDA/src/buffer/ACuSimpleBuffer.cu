@@ -27,7 +27,7 @@ void ACuSimpleBuffer<TYPE>::allocate(uint size){
     if (size == 0){
         return;
     }
-    cudaMalloc((void**)d_buffer, size * sizeof(TYPE));
+    cudaMalloc(&d_buffer, size * sizeof(TYPE));
     setSize(size);
     setAllocatedSize(size);
 }
