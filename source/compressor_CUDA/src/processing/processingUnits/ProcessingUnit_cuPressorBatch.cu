@@ -1,40 +1,46 @@
 #include "ProcessingUnit_cuPressorBatch.h"
 
-__global__ void cuPressorBath(float* data, int size, float* factors, float volume, int addressShift){
+__global__ void cuPressorBath(float* data, int size, float* factors, float* neutralPoints, int addressShift){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int idy = blockIdx.y; // do not set block y dimension, only grid y dimension
     if (idx < size){
         int index = idy * (addressShift + size) + idx + addressShift;
-        data[index] = copysignf((-1 / ((1 + factors[idy]) * abs(data[index] * volume) + 1) + 1) * (2 + factors[idy]) / (1 + factors[idy]), data[index]);
+        data[index] = copysignf((-1 / ((1 + factors[idy]) * abs(data[index]) + 1) + 1) * (2 + factors[idy]) / (1 + factors[idy]), data[index]) * neutralPoints[idy];
     }
 }
 
 ProcessingUnit_cuPressorBatch::ProcessingUnit_cuPressorBatch(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize, const uint bandCount, const uint& addressShift)
     : d_workBuffer(d_workBuffer), gridSize(gridSize), blockSize(blockSize), bufferSize(bufferSize), addressShift(addressShift), bandCount(bandCount) {
-    preGain = 1;
     
-    compressionFactors = new float[bandCount];
-    for (int i = 0; i < bandCount; i++){
-        compressionFactors[i] = 0.4;
-    }
     activeFactors = bandCount;
+    compressionFactors = new float[bandCount];
+    neutralPoints = new float[bandCount];
 
-    cudaMalloc(&d_compressionFactors, bandCount * sizeof(float));
-    cudaMemcpy(d_compressionFactors, compressionFactors, bandCount * sizeof(float), cudaMemcpyHostToDevice);
+    factorsBuffer = CuBufferFactory::createBuffer<float>(bandCount, CuBufferFactory::bufferType::TIME_OPTIMAL);
+    neutralPointsBuffer = CuBufferFactory::createBuffer<float>(bandCount, CuBufferFactory::bufferType::TIME_OPTIMAL);
+
+    setAllCompressionFactors(0.0);
+    setAllNeutralPoints(1);
 }
 
 ProcessingUnit_cuPressorBatch::~ProcessingUnit_cuPressorBatch(){
-    cudaFree(d_compressionFactors);
     delete[] compressionFactors;
+    delete[] neutralPoints;
+    delete factorsBuffer;
+    delete neutralPointsBuffer;
 }
 
 void ProcessingUnit_cuPressorBatch::process(){
-    cuPressorBath<<<(gridSize, bandCount), blockSize>>>(d_workBuffer, bufferSize, d_compressionFactors, preGain, addressShift);
+    cuPressorBath<<<dim3(gridSize, bandCount), blockSize>>>(d_workBuffer, bufferSize, *factorsBuffer, *neutralPointsBuffer, addressShift);
+}
+
+float compressionFactorFunction(const float& factor){
+    static const float minValue = 0.001;
+    // TODO: find a volume corelation 
+    return factor * 8 - (1 - minValue);
 }
 
 void ProcessingUnit_cuPressorBatch::setCompressionFactor(uint bandIndex, float factor){
-    static const float minValue = 0.001;
-
     if (bandIndex >= bandCount){
         return;
     }
@@ -47,28 +53,44 @@ void ProcessingUnit_cuPressorBatch::setCompressionFactor(uint bandIndex, float f
 
     setActive(activeFactors != 0);
 
-    double out = factor * 2; // TODO: find a volume corelation 
-    double multiplier = out;
-    for (int i = 0; i < 2; i++){
-        out *= multiplier;
-    }
-    factor = out - (1 - minValue);
+    factor = compressionFactorFunction(factor);
 
-    cudaMemcpy(d_compressionFactors + bandIndex, &factor, sizeof(float), cudaMemcpyHostToDevice);
+    factorsBuffer->copyBuffer(FROM_HOST, &factor, 1, bandIndex);
+}
+
+void ProcessingUnit_cuPressorBatch::setAllCompressionFactors(float factor){
+    setActive(factor != 0);
+    for (int i = 0; i < bandCount; i++){
+        compressionFactors[i] = compressionFactorFunction(factor);
+    }
+    factorsBuffer->copyBuffer(FROM_HOST, compressionFactors, bandCount);
 }
 
 float ProcessingUnit_cuPressorBatch::getCompressionFactor(uint bandIndex) const{
     if (bandIndex >= bandCount){
-        return INFINITY;
+        return 0;
     }
     return compressionFactors[bandIndex];
 }
 
-void ProcessingUnit_cuPressorBatch::setPreGain(float gain){
-    preGain = gain;
+void ProcessingUnit_cuPressorBatch::setNeutralPoint(uint bandIndex, float neutralPoint){
+    if (bandIndex >= bandCount){
+        return;
+    }
+    neutralPoints[bandIndex] = neutralPoint;
+    neutralPointsBuffer->copyBuffer(FROM_HOST, &neutralPoint, 1, bandIndex);
 }
 
-float ProcessingUnit_cuPressorBatch::getPreGain() const{
-    return preGain;
+void ProcessingUnit_cuPressorBatch::setAllNeutralPoints(float neutralPoint){
+    for (int i = 0; i < bandCount; i++){
+        neutralPoints[i] = neutralPoint;
+    }
+    neutralPointsBuffer->copyBuffer(FROM_HOST, neutralPoints, bandCount);
 }
 
+float ProcessingUnit_cuPressorBatch::getNeutralPoint(uint bandIndex) const{
+    if (bandIndex >= bandCount){
+        return 0;
+    }
+    return neutralPoints[bandIndex];
+}
