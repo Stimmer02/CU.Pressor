@@ -8,13 +8,14 @@
 #include "base/source/fstreamer.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 
+
 using namespace Steinberg;
 
 namespace cudaCompressor {
 //------------------------------------------------------------------------
 // CuPressorProcessor
 //------------------------------------------------------------------------
-CuPressorProcessor::CuPressorProcessor ()
+CuPressorProcessor::CuPressorProcessor () :  compressor(COMPRESSOR_BANDS)
 {
 	//--- set the wanted controller for our processor
 	setControllerClass (kCuPressorControllerUID);
@@ -83,7 +84,7 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 					case 0:
 						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
 						{
-							compressor.setCompressionFactor(value);
+							compressor.setGlobalCompressionFactor(value);
 						}
 						break;
 					case 1:
@@ -92,6 +93,42 @@ tresult PLUGIN_API CuPressorProcessor::process (Vst::ProcessData& data)
 							compressor.setVolume(value);
 						}
 						break;
+					// case 2:
+					// 	if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+					// 	{
+					// 		compressor.setAllCompressionFactors(value);
+					// 	}
+					// 	break;
+					// case 3:
+					// 	if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+					// 	{
+					// 		compressor.setAllNeutralPoints(value);
+					// 	}
+					// 	break;
+					
+					
+
+					default:
+						const int startFrom = 2;
+						int bandIndex = (paramQueue->getParameterId() - startFrom) / 2;
+						bool isCompression = (paramQueue->getParameterId() - startFrom) % 2 == 0;
+						if (bandIndex < COMPRESSOR_BANDS)
+						{
+							if (isCompression)
+							{
+								if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+								{
+									compressor.setCompressionFactor(bandIndex, value);
+								}
+							}
+							else
+							{
+								if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) == kResultOk)
+								{
+									compressor.setNeutralPoint(bandIndex, value);
+								}
+							}
+						}
 				}
 			}
 		}

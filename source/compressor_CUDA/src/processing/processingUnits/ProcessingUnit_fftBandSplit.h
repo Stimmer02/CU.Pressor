@@ -17,6 +17,7 @@ public:
     /// @param gridSize2D contains grid size in x dimension and band count in y dimension
     /// @param blockSize choosen block size
     /// @param complexWindowSize size of the complex window
+    /// @param sampleRate sample rate of the input data
     ProcessingUnit_fftBandSplit(cufftComplex*& d_input, cufftComplex*& d_output, const dim3& gridSize2D, const uint& blockSize, const uint& complexWindowSize, const uint& sampleRate);
 
     ~ProcessingUnit_fftBandSplit();

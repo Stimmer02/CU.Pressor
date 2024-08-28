@@ -19,7 +19,7 @@ ProcessingUnit_cuPressorBatch::ProcessingUnit_cuPressorBatch(float*& d_workBuffe
     factorsBuffer = CuBufferFactory::createBuffer<float>(bandCount, CuBufferFactory::bufferType::TIME_OPTIMAL);
     neutralPointsBuffer = CuBufferFactory::createBuffer<float>(bandCount, CuBufferFactory::bufferType::TIME_OPTIMAL);
 
-    setAllCompressionFactors(0.0);
+    setAllCompressionFactors(0);
     setAllNeutralPoints(1);
 }
 
@@ -37,7 +37,7 @@ void ProcessingUnit_cuPressorBatch::process(){
 float compressionFactorFunction(const float& factor){
     static const float minValue = 0.001;
     // TODO: find a volume corelation 
-    return factor * 8 - (1 - minValue);
+    return factor * 4 - (1 - minValue);
 }
 
 void ProcessingUnit_cuPressorBatch::setCompressionFactor(uint bandIndex, float factor){
@@ -59,11 +59,20 @@ void ProcessingUnit_cuPressorBatch::setCompressionFactor(uint bandIndex, float f
 }
 
 void ProcessingUnit_cuPressorBatch::setAllCompressionFactors(float factor){
-    setActive(factor != 0);
-    for (int i = 0; i < bandCount; i++){
-        compressionFactors[i] = compressionFactorFunction(factor);
+    bool active = factor != 0;
+    if (active){
+        activeFactors = bandCount;
+    } else {
+        activeFactors = 0;
     }
-    factorsBuffer->copyBuffer(FROM_HOST, compressionFactors, bandCount);
+    setActive(active);
+    float* processedCompressionFactors = new float[bandCount];
+    for (int i = 0; i < bandCount; i++){
+        processedCompressionFactors[i] = compressionFactorFunction(factor);
+        compressionFactors[i] = factor;
+    }
+    factorsBuffer->copyBuffer(FROM_HOST, processedCompressionFactors, bandCount);
+    delete[] processedCompressionFactors;
 }
 
 float ProcessingUnit_cuPressorBatch::getCompressionFactor(uint bandIndex) const{

@@ -1,10 +1,9 @@
-#include "Compressor2.h"
+#include "Compressor.h"
 
-Compressor2::Compressor2(const uint& bandCount, const uint& windowSize, const uint& sampleRate){
+Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint& sampleRate){
     settings.bandCount = bandCount;
-    // settings.bandCount = 2;
+    settings.sampleRate = sampleRate;
     settings.windowSize = 0;
-    settings.sampleRate = 0;
     settings.processingSize = 0;
     settings.complexWindowSize = 0;
     settings.addressShift = 0;
@@ -23,6 +22,7 @@ Compressor2::Compressor2(const uint& bandCount, const uint& windowSize, const ui
     units.fftR2C = new ProcessingUnit_fftR2C(bufferPointers.d_workBuffer, bufferPointers.d_cufftOutput, fft.R2C);
     units.fftBandSplit = new ProcessingUnit_fftBandSplit(bufferPointers.d_cufftOutput, bufferPointers.d_cufftBands, kernelSize.gridComplex2D, kernelSize.block, settings.complexWindowSize, settings.sampleRate);
     units.fftC2R = new ProcessingUnit_fftC2R(bufferPointers.d_cufftBands, bufferPointers.d_bands, fft.C2R);
+    units.cuPressorBatch = new ProcessingUnit_cuPressorBatch(bufferPointers.d_bands, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
     units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bands, bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
     units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
     units.volume = new ProcessingUnit_volume(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
@@ -30,16 +30,15 @@ Compressor2::Compressor2(const uint& bandCount, const uint& windowSize, const ui
     processingQueue.appendQueue(units.fftR2C);
     processingQueue.appendQueue(units.fftBandSplit);
     processingQueue.appendQueue(units.fftC2R);
+    processingQueue.appendQueue(units.cuPressorBatch);
     processingQueue.appendQueue(units.fftBandMerge);
     processingQueue.appendQueue(units.cuPressor);
     processingQueue.appendQueue(units.volume);
 
-    // setSampleRate(sampleRate); // commented to avoid repeating execution of generateBandSplittingTable()
-    settings.sampleRate = sampleRate;
     setWindowSize(windowSize);
 }
 
-Compressor2::~Compressor2(){
+Compressor::~Compressor(){
     delete[] buffers.workBuffer;
     delete buffers.cufftOutput;
     delete buffers.cufftBands;
@@ -48,6 +47,7 @@ Compressor2::~Compressor2(){
     delete units.fftR2C;
     delete units.fftBandSplit;
     delete units.fftC2R;
+    delete units.cuPressorBatch;
     delete units.fftBandMerge;
     delete units.cuPressor;
     delete units.volume;
@@ -60,7 +60,7 @@ Compressor2::~Compressor2(){
     }
 }
 
-void Compressor2::compress(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
+void Compressor::compress(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     if (size <= settings.windowSize){
         processSingleWindow(samplesIn, samplesOut, size, channelNumber);
     } else {
@@ -69,7 +69,7 @@ void Compressor2::compress(const float* samplesIn, float* samplesOut, const uint
     cudaDeviceSynchronize();
 }
 
-void Compressor2::processSingleWindow(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
+void Compressor::processSingleWindow(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     setProcessingSize(size);
     buffers.workBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
     // those two pointers change every time pushBack is called
@@ -80,7 +80,7 @@ void Compressor2::processSingleWindow(const float* samplesIn, float* samplesOut,
     buffers.workBuffer[channelNumber].copyInactiveBuffer(TO_HOST, samplesOut, settings.processingSize);
 }
 
-void Compressor2::processMultipleWindows(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
+void Compressor::processMultipleWindows(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     int leftToProcess = size;
     for (int i = 0; i < size - settings.windowSize; i += settings.windowSize){
         processSingleWindow(samplesIn + i, samplesOut + i, (leftToProcess > settings.windowSize) ? settings.windowSize : leftToProcess, channelNumber);
@@ -88,7 +88,7 @@ void Compressor2::processMultipleWindows(const float* samplesIn, float* samplesO
     }
 }
 
-void Compressor2::setWindowSize(uint size){
+void Compressor::setWindowSize(uint size){
     settings.windowSize = size;
     settings.complexWindowSize = size / 2 + 1;
     settings.addressShift = settings.windowSize - settings.processingSize;
@@ -106,7 +106,7 @@ void Compressor2::setWindowSize(uint size){
     cufftPlan1d(&fft.C2R, size, CUFFT_C2R, settings.bandCount);
 }
 
-// void Compressor2::setBandCount(uint count){
+// void Compressor::setBandCount(uint count){
 //     settings.bandCount = count;
 //     calculateKernelSize();
 //     resize(settings.processingSize, settings.complexWindowSize, settings.bandCount);
@@ -117,12 +117,12 @@ void Compressor2::setWindowSize(uint size){
 //     cufftPlan1d(&fft.C2R, size, CUFFT_C2R, settings.bandCount);
 // }
 
-void Compressor2::setSampleRate(uint rate){
+void Compressor::setSampleRate(uint rate){
     settings.sampleRate = rate;
     units.fftBandSplit->generateBandSplittingTable();
 }
 
-void Compressor2::resize(uint size, uint complexSize){
+void Compressor::resize(uint size, uint complexSize){
     complexSize = (complexSize == 0) ? size / 2 + 1 : complexSize;
 
     buffers.workBuffer[0].resize(size);
@@ -140,7 +140,7 @@ void Compressor2::resize(uint size, uint complexSize){
     bufferPointers.d_bands = *buffers.bands;
 }
 
-void Compressor2::calculateKernelSize(){
+void Compressor::calculateKernelSize(){
     kernelSize.block = 256;
     kernelSize.gridReal = (settings.processingSize + kernelSize.block - 1) / kernelSize.block;
     kernelSize.gridReal2D = dim3(kernelSize.gridReal, settings.bandCount);
@@ -148,7 +148,7 @@ void Compressor2::calculateKernelSize(){
     kernelSize.gridComplex2D = dim3(kernelSize.gridComplex, settings.bandCount);
 }
 
-void Compressor2::setProcessingSize(uint size){
+void Compressor::setProcessingSize(uint size){
     if (size == settings.processingSize){
         return;
     }
@@ -157,10 +157,26 @@ void Compressor2::setProcessingSize(uint size){
     calculateKernelSize();
 }
 
-void Compressor2::setVolume(float volume){
+void Compressor::setVolume(float volume){
     units.volume->setVolume(volume);
 }
 
-void Compressor2::setCompressionFactor(float factor){
+void Compressor::setGlobalCompressionFactor(float factor){
     units.cuPressor->setCompressionFactor(factor);
+}
+
+void Compressor::setCompressionFactor(uint band, float factor){
+    units.cuPressorBatch->setCompressionFactor(band, factor);
+}
+
+void Compressor::setAllCompressionFactors(float factor){
+    units.cuPressorBatch->setAllCompressionFactors(factor);
+}
+
+void Compressor::setNeutralPoint(uint band, float neutralPoint){
+    units.cuPressorBatch->setNeutralPoint(band, neutralPoint);
+}
+
+void Compressor::setAllNeutralPoints(float neutralPoint){
+    units.cuPressorBatch->setAllNeutralPoints(neutralPoint);
 }

@@ -1,10 +1,14 @@
-#include "Compressor2.h"
+#include "Compressor.h"
 #include <stdio.h>
 
 int main(){
-    Compressor2 compressor;
-    double compressionInitialValue = 0.5;
-    printf("Setting parameters to %f\n", compressionInitialValue);
+    Compressor compressor;
+    double value = 0.5;
+    printf("Setting parameters to %f\n", value);
+    compressor.setGlobalCompressionFactor(value);
+    compressor.setVolume(value);
+    compressor.setAllCompressionFactors(value);
+    compressor.setAllNeutralPoints(value);
     printf("Setting window size to 2048\n");
     compressor.setWindowSize(2048);
     float samplesIn[1024*5];

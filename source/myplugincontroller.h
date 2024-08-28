@@ -6,6 +6,10 @@
 
 #include "public.sdk/source/vst/vsteditcontroller.h"
 
+#ifndef COMPRESSOR_BANDS
+#define COMPRESSOR_BANDS 8
+#endif
+
 namespace cudaCompressor {
 
 //------------------------------------------------------------------------

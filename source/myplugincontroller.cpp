@@ -8,11 +8,26 @@
 
 using namespace Steinberg;
 
+
+#include <string>
+#include <vector>
+#include <codecvt>
+#include <locale>
+
+// Function to convert std::string to Steinberg::Vst::TChar*
+Steinberg::Vst::TChar* toTChar(const std::string& str) {
+    std::u16string u16str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(str);
+    Steinberg::Vst::TChar* tcharStr = new Steinberg::Vst::TChar[u16str.size() + 1];
+    std::copy(u16str.begin(), u16str.end(), tcharStr);
+    tcharStr[u16str.size()] = 0; // Null-terminate the string
+    return tcharStr;
+}
 namespace cudaCompressor {
 
 //------------------------------------------------------------------------
 // CuPressorController Implementation
 //------------------------------------------------------------------------
+
 tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 {
 	// Here the Plug-in will be instantiated
@@ -25,14 +40,14 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 	}
 
 	parameters.addParameter(
-		STR16("Compression"),    // Parameter title
+		STR16("Global Compression"),    // Parameter title
 		nullptr,          // Parameter units (optional)
 		0,                // Step count (0 means continuous)
 		0.4,              // Default value (in normalized range [0,1])
 		Vst::ParameterInfo::kCanAutomate, // Flags (this one makes it automatable)
 		0,                // Parameter ID
 		0,                // Parameter group (optional)
-		STR16("Comp"));   // Short title (optional)
+		STR16("GComp"));   // Short title (optional)
 	parameters.addParameter(
 		STR16("Volume"),   
 		nullptr,          
@@ -42,6 +57,47 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 		1,                
 		0,              
 		STR16("Vol"));
+	// parameters.addParameter(
+	// 	STR16("All Compression"),   
+	// 	nullptr,          
+	// 	0,               
+	// 	0,              
+	// 	Vst::ParameterInfo::kCanAutomate, 
+	// 	2,                
+	// 	0,              
+	// 	STR16("AComp"));
+	// parameters.addParameter(
+	// 	STR16("All Neutral Point"),   
+	// 	nullptr,          
+	// 	0,               
+	// 	1.0,              
+	// 	Vst::ParameterInfo::kCanAutomate, 
+	// 	3,                
+	// 	0,              
+	// 	STR16("ANP"));
+
+	const int startFrom = 2;
+	for (int i = 0; i < COMPRESSOR_BANDS; i++){
+		parameters.addParameter(
+            toTChar("Band " + std::to_string(i+1) + " Compression"),
+            nullptr,
+            0,
+            0.0,
+            Vst::ParameterInfo::kCanAutomate,
+            i*2+startFrom,
+            0,
+            toTChar("B" + std::to_string(i+1) + "Comp"));
+
+        parameters.addParameter(
+            toTChar("Band " + std::to_string(i+1) + " Neutral Point"),   
+            nullptr,          
+            0,               
+            1.0,              
+            Vst::ParameterInfo::kCanAutomate, 
+            i*2+1+startFrom,                
+            0,              
+            toTChar("B" + std::to_string(i+1) + "NP"));
+	}
 
 
 	return result;

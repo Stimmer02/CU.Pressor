@@ -37,7 +37,7 @@ void ProcessingUnit_fftBandSplit::generateBandSplittingTable(){
     uint bandCount = gridSize2D.y;
     bandMasks->resize(bandCount * complexWindowSize);
     float* masks = new float[bandCount * complexWindowSize];
-    float maxFrequency = 25000.0;
+    float maxFrequency = 20000.0;
     float minFrequency = 20.0;
     float sizeRatio = std::pow(maxFrequency / minFrequency, 1.0 / bandCount);
     float maskMinValue = 0.00;
