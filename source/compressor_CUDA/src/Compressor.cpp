@@ -24,6 +24,9 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     units.fftC2R = new ProcessingUnit_fftC2R(bufferPointers.d_cufftBands, bufferPointers.d_bands, fft.C2R);
     units.cuPressorBatch = new ProcessingUnit_cuPressorBatch(bufferPointers.d_bands, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
     units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bands, bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
+
+    units.copyBuffer = new ProcessingUnit_copyBuffer<float>(bufferPointers.d_workBufferCurrentPart, bufferPointers.d_output, settings.processingSize, cudaMemcpyDeviceToDevice);
+
     units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
     units.volume = new ProcessingUnit_volume(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
 
@@ -32,8 +35,16 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     processingQueue.appendQueue(units.fftC2R);
     processingQueue.appendQueue(units.cuPressorBatch);
     processingQueue.appendQueue(units.fftBandMerge);
+    processingQueue.appendQueue(units.copyBuffer);
     processingQueue.appendQueue(units.cuPressor);
     processingQueue.appendQueue(units.volume);
+
+    units.fftR2C->registerDependency(units.cuPressorBatch);
+    units.fftBandSplit->registerDependency(units.cuPressorBatch);
+    units.fftC2R->registerDependency(units.cuPressorBatch);
+    units.fftBandMerge->registerDependency(units.cuPressorBatch);
+
+    units.copyBuffer->registerExclusion(units.cuPressorBatch);
 
     setWindowSize(windowSize);
 }
@@ -49,6 +60,7 @@ Compressor::~Compressor(){
     delete units.fftC2R;
     delete units.cuPressorBatch;
     delete units.fftBandMerge;
+    delete units.copyBuffer;
     delete units.cuPressor;
     delete units.volume;
 
@@ -74,6 +86,7 @@ void Compressor::processSingleWindow(const float* samplesIn, float* samplesOut, 
     buffers.workBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
     // those two pointers change every time pushBack is called
     bufferPointers.d_workBuffer = buffers.workBuffer[channelNumber];
+    bufferPointers.d_workBufferCurrentPart = buffers.workBuffer[channelNumber][settings.addressShift];
     bufferPointers.d_output = buffers.workBuffer[channelNumber].getInactiveBuffer();
 
     processingQueue.execute();
@@ -128,6 +141,7 @@ void Compressor::resize(uint size, uint complexSize){
     buffers.workBuffer[0].resize(size);
     buffers.workBuffer[1].resize(size);
     bufferPointers.d_workBuffer = buffers.workBuffer[0];
+    bufferPointers.d_workBufferCurrentPart = buffers.workBuffer[0][settings.addressShift];
     bufferPointers.d_output = buffers.workBuffer[0].getInactiveBuffer();
 
     buffers.cufftOutput->resize(complexSize);

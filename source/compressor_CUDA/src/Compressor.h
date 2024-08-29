@@ -19,6 +19,7 @@
 #include "processing/processingUnits/ProcessingUnit_fftC2R.h"
 #include "processing/processingUnits/ProcessingUnit_fftBandSplit.h"
 #include "processing/processingUnits/ProcessingUnit_fftBandMerge.h"
+#include "processing/processingUnits/ProcessingUnit_copyBuffer.h"
 
 #include <cufft.h>
 
@@ -131,7 +132,8 @@ private:
     } buffers;
 
     struct {
-        float* d_workBuffer; 
+        float* d_workBuffer;
+        float* d_workBufferCurrentPart;
         cufftComplex* d_cufftOutput;
         cufftComplex* d_cufftBands;
         float* d_bands;
@@ -151,6 +153,7 @@ private:
         ProcessingUnit_cuPressorBatch* cuPressorBatch;
         ProcessingUnit_fftC2R* fftC2R;
         ProcessingUnit_fftBandMerge* fftBandMerge;
+        ProcessingUnit_copyBuffer<float>* copyBuffer;
         ProcessingUnit_cuPressor* cuPressor;
         ProcessingUnit_volume* volume;
     } units;
