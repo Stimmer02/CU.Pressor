@@ -24,8 +24,7 @@ private:
     int unitsCount;
     int unitsAllocated;
 
-    inline bool activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const override;
-    inline bool deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const override;
+    inline bool activationFunction(const int& activeDependencies, const int& dependenciesSize, const int& activeExclusions, const int& exclusionsSize) const override;
 
     /// @brief resizes the units array
     /// @param newSize new size of the array

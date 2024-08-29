@@ -43,10 +43,6 @@ void SoftDependencyGroup::resize(int newSize){
     delete[] oldUnits;
 }
 
-inline bool SoftDependencyGroup::activationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
-    return active == false;
-}
-
-inline bool SoftDependencyGroup::deactivationFunction(const bool& active, const int& activeDependencies, const int& dependenciesSize) const{
-    return activeDependencies == 0;
+inline bool SoftDependencyGroup::activationFunction(const int& activeDependencies, const int& dependenciesSize, const int& activeExclusions, const int& exclusionsSize) const{
+    return activeDependencies != 0 && activeExclusions == 0;
 }
