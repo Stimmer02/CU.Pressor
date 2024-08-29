@@ -9,7 +9,7 @@ __global__ void cuPressor(float* data, int size, float factor){
 
 ProcessingUnit_cuPressor::ProcessingUnit_cuPressor(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize)
     : d_workBuffer(d_workBuffer), gridSize(gridSize), blockSize(blockSize), bufferSize(bufferSize){
-    setCompressionFactor(0.0f);
+    setCompressionFactor(0.1f);
 }
 
 void ProcessingUnit_cuPressor::process(){
@@ -17,18 +17,12 @@ void ProcessingUnit_cuPressor::process(){
 }
 
 void ProcessingUnit_cuPressor::setCompressionFactor(float factor){
+    static const float minValue = 0.001;
+
     bool active = factor != 0.0f;
     setActive(active);
-    if (active == false){
-        return;
-    }
 
-    double out = factor * 2; // TODO: find a volume corelation 
-    double multiplier = out;
-    for (int i = 0; i < 2; i++){
-        out *= multiplier;
-    }
-    processedCompressionFactor = out - 1;
+    processedCompressionFactor = factor * 4 - (1 - minValue);;
 }
 
 float ProcessingUnit_cuPressor::getCompressionFactor() const{

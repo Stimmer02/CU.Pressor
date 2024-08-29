@@ -20,6 +20,7 @@
 #include "processing/processingUnits/ProcessingUnit_fftBandSplit.h"
 #include "processing/processingUnits/ProcessingUnit_fftBandMerge.h"
 #include "processing/processingUnits/ProcessingUnit_copyBuffer.h"
+#include "processing/processingUnits/SoftDependencyGroup.h"
 
 #include <cufft.h>
 
@@ -132,6 +133,9 @@ private:
     } buffers;
 
     struct {
+        float const* input;
+        float* output;
+        
         float* d_workBuffer;
         float* d_workBufferCurrentPart;
         cufftComplex* d_cufftOutput;
@@ -153,9 +157,13 @@ private:
         ProcessingUnit_cuPressorBatch* cuPressorBatch;
         ProcessingUnit_fftC2R* fftC2R;
         ProcessingUnit_fftBandMerge* fftBandMerge;
-        ProcessingUnit_copyBuffer<float>* copyBuffer;
+        ProcessingUnit_copyBuffer<float>* fftBypass;
         ProcessingUnit_cuPressor* cuPressor;
         ProcessingUnit_volume* volume;
+        ProcessingUnit_copyBuffer<float>* copyToHost;
+        ProcessingUnit_copyBuffer<float>* systemBypass;
+
+        SoftDependencyGroup* GPUProcessing;
     } units;
 
 };

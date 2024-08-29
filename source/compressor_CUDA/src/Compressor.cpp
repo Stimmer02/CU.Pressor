@@ -25,26 +25,39 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     units.cuPressorBatch = new ProcessingUnit_cuPressorBatch(bufferPointers.d_bands, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
     units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bands, bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
 
-    units.copyBuffer = new ProcessingUnit_copyBuffer<float>(bufferPointers.d_workBufferCurrentPart, bufferPointers.d_output, settings.processingSize, cudaMemcpyDeviceToDevice);
+    units.fftBypass = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_workBufferCurrentPart, bufferPointers.d_output, settings.processingSize, cudaMemcpyDeviceToDevice);
 
     units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
     units.volume = new ProcessingUnit_volume(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
+    units.copyToHost = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_output, bufferPointers.output, settings.processingSize, cudaMemcpyDeviceToHost);
+
+    units.systemBypass = new ProcessingUnit_copyBuffer<float>(bufferPointers.input, bufferPointers.output, settings.processingSize, cudaMemcpyHostToHost);
+    units.GPUProcessing = new SoftDependencyGroup(3);
 
     processingQueue.appendQueue(units.fftR2C);
     processingQueue.appendQueue(units.fftBandSplit);
     processingQueue.appendQueue(units.fftC2R);
     processingQueue.appendQueue(units.cuPressorBatch);
     processingQueue.appendQueue(units.fftBandMerge);
-    processingQueue.appendQueue(units.copyBuffer);
+    processingQueue.appendQueue(units.fftBypass);
     processingQueue.appendQueue(units.cuPressor);
     processingQueue.appendQueue(units.volume);
+    processingQueue.appendQueue(units.copyToHost);
+    processingQueue.appendQueue(units.systemBypass);
 
     units.fftR2C->registerDependency(units.cuPressorBatch);
     units.fftBandSplit->registerDependency(units.cuPressorBatch);
     units.fftC2R->registerDependency(units.cuPressorBatch);
     units.fftBandMerge->registerDependency(units.cuPressorBatch);
 
-    units.copyBuffer->registerExclusion(units.cuPressorBatch);
+    units.fftBypass->registerExclusion(units.cuPressorBatch);
+
+    units.GPUProcessing->registerUnit(units.cuPressorBatch);
+    units.GPUProcessing->registerUnit(units.cuPressor);
+    units.GPUProcessing->registerUnit(units.volume);
+    units.copyToHost->registerDependency(units.GPUProcessing);
+
+    units.systemBypass->registerExclusion(units.GPUProcessing);
 
     setWindowSize(windowSize);
 }
@@ -60,9 +73,12 @@ Compressor::~Compressor(){
     delete units.fftC2R;
     delete units.cuPressorBatch;
     delete units.fftBandMerge;
-    delete units.copyBuffer;
+    delete units.fftBypass;
     delete units.cuPressor;
     delete units.volume;
+    delete units.copyToHost;
+    delete units.systemBypass;
+    delete units.GPUProcessing;
 
     if (fft.R2C != 0) {
         cufftDestroy(fft.R2C);
@@ -83,14 +99,15 @@ void Compressor::compress(const float* samplesIn, float* samplesOut, const uint&
 
 void Compressor::processSingleWindow(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){
     setProcessingSize(size);
+    bufferPointers.input = samplesIn;
+    bufferPointers.output = samplesOut;
     buffers.workBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
-    // those two pointers change every time pushBack is called
+    // those pointers change every time pushBack is called
     bufferPointers.d_workBuffer = buffers.workBuffer[channelNumber];
     bufferPointers.d_workBufferCurrentPart = buffers.workBuffer[channelNumber][settings.addressShift];
     bufferPointers.d_output = buffers.workBuffer[channelNumber].getInactiveBuffer();
 
     processingQueue.execute();
-    buffers.workBuffer[channelNumber].copyInactiveBuffer(TO_HOST, samplesOut, settings.processingSize);
 }
 
 void Compressor::processMultipleWindows(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber){

@@ -43,7 +43,7 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 		STR16("Global Compression"),    // Parameter title
 		nullptr,          // Parameter units (optional)
 		0,                // Step count (0 means continuous)
-		0.4,              // Default value (in normalized range [0,1])
+		0.1,              // Default value (in normalized range [0,1])
 		Vst::ParameterInfo::kCanAutomate, // Flags (this one makes it automatable)
 		0,                // Parameter ID
 		0,                // Parameter group (optional)

@@ -9,7 +9,7 @@ __global__ void volumeControl(float* data, int size, float volume){
 
 ProcessingUnit_volume::ProcessingUnit_volume(float*& d_workBuffer, const uint& gridSize, const uint& blockSize, const uint& bufferSize) 
     : d_workBuffer(d_workBuffer), gridSize(gridSize), blockSize(blockSize), bufferSize(bufferSize){
-    volume = 1.0f;
+    setVolume(1.0f);
 }
 
 void ProcessingUnit_volume::process(){

@@ -18,13 +18,13 @@ public:
     /// @param destination destination buffer
     /// @param size size of the buffer
     /// @param kind type of the copy operation
-    ProcessingUnit_copyBuffer(TYPE*& source, TYPE*& destination, uint& size, const enum cudaMemcpyKind kind);
+    ProcessingUnit_copyBuffer(const TYPE*& source, TYPE*& destination, uint& size, const enum cudaMemcpyKind kind);
 
     /// @brief Copies the data from source to destination
     void process() override;
     
 private:
-    TYPE*& source;
+    const TYPE*& source;
     TYPE*& destination;
     uint& size;
 
@@ -32,7 +32,7 @@ private:
 };
 
 template <typename TYPE>
-ProcessingUnit_copyBuffer<TYPE>::ProcessingUnit_copyBuffer(TYPE*& source, TYPE*& destination, uint& size, const enum cudaMemcpyKind kind) : source(source), destination(destination), size(size), kind(kind){}
+ProcessingUnit_copyBuffer<TYPE>::ProcessingUnit_copyBuffer(const TYPE*& source, TYPE*& destination, uint& size, const enum cudaMemcpyKind kind) : source(source), destination(destination), size(size), kind(kind){}
 
 template <typename TYPE>
 void ProcessingUnit_copyBuffer<TYPE>::process(){
