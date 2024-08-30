@@ -10,9 +10,11 @@ using namespace Steinberg;
 
 
 #include <string>
+#include <stdio.h>
 #include <vector>
 #include <codecvt>
 #include <locale>
+#include "compressor_CUDA/src/Compressor.h"
 
 // Function to convert std::string to Steinberg::Vst::TChar*
 Steinberg::Vst::TChar* toTChar(const std::string& str) {
@@ -78,8 +80,14 @@ tresult PLUGIN_API CuPressorController::initialize (FUnknown* context)
 
 	const int startFrom = 2;
 	for (int i = 0; i < COMPRESSOR_BANDS; i++){
+		char buffer[100];
+		snprintf(buffer, sizeof(buffer), " (%.0f - %.0fHz)", 
+				Compressor::getlowerFrequencyBandBound(i, COMPRESSOR_BANDS), 
+				Compressor::getlowerFrequencyBandBound(i+1, COMPRESSOR_BANDS));
+    
+   		std::string bandCompression = "Band " + std::to_string(i+1) + " Compression" + buffer;
 		parameters.addParameter(
-            toTChar("Band " + std::to_string(i+1) + " Compression"),
+            toTChar(bandCompression),
             nullptr,
             0,
             0.0,

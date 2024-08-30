@@ -79,6 +79,8 @@ public:
     /// @param neutralPoint the amplitude to which the signal is compressed
     void setAllNeutralPoints(float neutralPoint);
 
+    static float getlowerFrequencyBandBound(const uint& bandIndex, const uint& bandCount);
+
 private:
     /// @brief Resizes the buffers
     /// @param size new size of the buffers

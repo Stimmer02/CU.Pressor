@@ -33,18 +33,23 @@ float linearDescend(const float& x, const float& minVal, const float& range){
    return 1 - x / range * (1 - minVal);
 }
 
+float ProcessingUnit_fftBandSplit::getlowerFrequencyBandBound(const uint& bandIndex, const uint& bandCount){
+    float maxFrequency = 20000.0;
+    float minFrequency = 20.0;
+    float sizeRatio = std::pow(maxFrequency / minFrequency, 1.0 / bandCount);
+    return minFrequency * std::pow(sizeRatio, bandIndex);
+}
+
 void ProcessingUnit_fftBandSplit::generateBandSplittingTable(){
     uint bandCount = gridSize2D.y;
     bandMasks->resize(bandCount * complexWindowSize);
     float* masks = new float[bandCount * complexWindowSize];
-    float maxFrequency = 20000.0;
-    float minFrequency = 20.0;
-    float sizeRatio = std::pow(maxFrequency / minFrequency, 1.0 / bandCount);
+    
     float maskMinValue = 0.00;
     float previousbandHalfWidth = 0;
     for (int i = 0; i < bandCount - 1; i++){
-        float startFrequency = minFrequency * std::pow(sizeRatio, i);
-        float endFrequency = minFrequency * std::pow(sizeRatio, i + 1);
+        float startFrequency = getlowerFrequencyBandBound(i, bandCount);
+        float endFrequency =  getlowerFrequencyBandBound(i + 1, bandCount);
         float bandHalfWidth = (endFrequency - startFrequency) / 2;
         // printf("Band %d: %.04f - %.04f\n", i, startFrequency, endFrequency);
     
@@ -77,7 +82,7 @@ void ProcessingUnit_fftBandSplit::generateBandSplittingTable(){
         // masks[i * complexWindowSize + complexWindowSize - 1] = 1;
         previousbandHalfWidth = bandHalfWidth;
     }
-    float startFrequency = minFrequency * std::pow(sizeRatio, bandCount - 1);
+    float startFrequency = getlowerFrequencyBandBound(bandCount - 1, bandCount);
     for (int j = 0; j < complexWindowSize; j++){
         float frequency = (float)j / (float)complexWindowSize * (float)sampleRate;
         if (frequency < startFrequency + previousbandHalfWidth){

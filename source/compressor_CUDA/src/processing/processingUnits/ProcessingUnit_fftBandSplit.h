@@ -28,6 +28,13 @@ public:
     /// @brief Generates a mask for band splitting, use if banc count or complex window size changes
     void generateBandSplittingTable();
 
+    /// @brief Returns band frequency bounds based on band index and count
+    /// @param bandIndex index of the band
+    /// @param bandCount total amount of bands
+    /// @return lower frequency bound of the band
+    /// to get upper bound use getlowerFrequencyBandBound(bandIndex + 1, bandCount)
+    static float getlowerFrequencyBandBound(const uint& bandIndex, const uint& bandCount); 
+
 private:
     cufftComplex*& d_input;
     cufftComplex*& d_output;

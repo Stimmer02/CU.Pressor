@@ -219,3 +219,7 @@ void Compressor::setNeutralPoint(uint band, float neutralPoint){
 void Compressor::setAllNeutralPoints(float neutralPoint){
     units.cuPressorBatch->setAllNeutralPoints(neutralPoint);
 }
+
+float Compressor::getlowerFrequencyBandBound(const uint &bandIndex, const uint &bandCount){
+    return ProcessingUnit_fftBandSplit::getlowerFrequencyBandBound(bandIndex, bandCount);
+}
