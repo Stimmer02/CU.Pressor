@@ -11,21 +11,23 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     fft.C2R = 0;
     fft.R2C = 0;
 
-    buffers.workBuffer = new CuShiftBuffer<float>[2];
+    buffers.shiftBuffer = new CuShiftBuffer<float>[2];
     for (int i = 0; i < 2; i++){
-        buffers.workBuffer[i] = CuShiftBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
+        buffers.shiftBuffer[i] = CuShiftBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     }
+    buffers.workBuffer = CuBufferFactory::createBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     buffers.cufftOutput = CuBufferFactory::createBuffer<cufftComplex>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     buffers.cufftBands = CuBufferFactory::createBuffer<cufftComplex>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     buffers.bands = CuBufferFactory::createBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
 
+    units.windowing = new ProcessingUnit_windowing(bufferPointers.d_shiftBuffer, bufferPointers.d_workBuffer, kernelSize.gridFullWindow, kernelSize.block, settings.windowSize);
     units.fftR2C = new ProcessingUnit_fftR2C(bufferPointers.d_workBuffer, bufferPointers.d_cufftOutput, fft.R2C);
     units.fftBandSplit = new ProcessingUnit_fftBandSplit(bufferPointers.d_cufftOutput, bufferPointers.d_cufftBands, kernelSize.gridComplex2D, kernelSize.block, settings.complexWindowSize, settings.sampleRate);
     units.fftC2R = new ProcessingUnit_fftC2R(bufferPointers.d_cufftBands, bufferPointers.d_bands, fft.C2R);
-    units.cuPressorBatch = new ProcessingUnit_cuPressorBatch(bufferPointers.d_bands, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
-    units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bands, bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
+    units.cuPressorBatch = new ProcessingUnit_cuPressorBatch(bufferPointers.d_bandsMoved, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
+    units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bandsMoved, bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
 
-    units.fftBypass = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_workBufferCurrentPart, bufferPointers.d_output, settings.processingSize, cudaMemcpyDeviceToDevice);
+    units.fftBypass = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_shiftBufferCurrentPart, bufferPointers.d_output, settings.processingSize, cudaMemcpyDeviceToDevice);
 
     units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
     units.volume = new ProcessingUnit_volume(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
@@ -34,6 +36,7 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     units.systemBypass = new ProcessingUnit_copyBuffer<float>(bufferPointers.input, bufferPointers.output, settings.processingSize, cudaMemcpyHostToHost);
     units.GPUProcessing = new SoftDependencyGroup(3);
 
+    processingQueue.appendQueue(units.windowing);
     processingQueue.appendQueue(units.fftR2C);
     processingQueue.appendQueue(units.fftBandSplit);
     processingQueue.appendQueue(units.fftC2R);
@@ -45,6 +48,7 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     processingQueue.appendQueue(units.copyToHost);
     processingQueue.appendQueue(units.systemBypass);
 
+    units.windowing->registerDependency(units.cuPressorBatch);
     units.fftR2C->registerDependency(units.cuPressorBatch);
     units.fftBandSplit->registerDependency(units.cuPressorBatch);
     units.fftC2R->registerDependency(units.cuPressorBatch);
@@ -63,11 +67,13 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
 }
 
 Compressor::~Compressor(){
-    delete[] buffers.workBuffer;
+    delete[] buffers.shiftBuffer;
+    delete buffers.workBuffer;
     delete buffers.cufftOutput;
     delete buffers.cufftBands;
     delete buffers.bands;
 
+    delete units.windowing;
     delete units.fftR2C;
     delete units.fftBandSplit;
     delete units.fftC2R;
@@ -101,11 +107,10 @@ void Compressor::processSingleWindow(const float* samplesIn, float* samplesOut, 
     setProcessingSize(size);
     bufferPointers.input = samplesIn;
     bufferPointers.output = samplesOut;
-    buffers.workBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
-    // those pointers change every time pushBack is called
-    bufferPointers.d_workBuffer = buffers.workBuffer[channelNumber];
-    bufferPointers.d_workBufferCurrentPart = buffers.workBuffer[channelNumber][settings.addressShift];
-    bufferPointers.d_output = buffers.workBuffer[channelNumber].getInactiveBuffer();
+    buffers.shiftBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
+    bufferPointers.d_shiftBuffer = buffers.shiftBuffer[channelNumber];
+    bufferPointers.d_shiftBufferCurrentPart = buffers.shiftBuffer[channelNumber][settings.addressShift];
+    bufferPointers.d_output = buffers.shiftBuffer[channelNumber].getInactiveBuffer();
 
     processingQueue.execute();
 }
@@ -125,6 +130,7 @@ void Compressor::setWindowSize(uint size){
     calculateKernelSize();
     resize(size);
     units.fftBandSplit->generateBandSplittingTable();
+    units.windowing->generateWindow(settings.windowSize / 5, settings.processingSize / 5);
 
     if (fft.R2C != 0) {
         cufftDestroy(fft.R2C);
@@ -155,11 +161,14 @@ void Compressor::setSampleRate(uint rate){
 void Compressor::resize(uint size, uint complexSize){
     complexSize = (complexSize == 0) ? size / 2 + 1 : complexSize;
 
-    buffers.workBuffer[0].resize(size);
-    buffers.workBuffer[1].resize(size);
-    bufferPointers.d_workBuffer = buffers.workBuffer[0];
-    bufferPointers.d_workBufferCurrentPart = buffers.workBuffer[0][settings.addressShift];
-    bufferPointers.d_output = buffers.workBuffer[0].getInactiveBuffer();
+    buffers.shiftBuffer[0].resize(size);
+    buffers.shiftBuffer[1].resize(size);
+    bufferPointers.d_shiftBuffer = buffers.shiftBuffer[0];
+    bufferPointers.d_shiftBufferCurrentPart = buffers.shiftBuffer[0][settings.addressShift];
+    bufferPointers.d_output = buffers.shiftBuffer[0].getInactiveBuffer();
+
+    buffers.workBuffer->resize(size);
+    bufferPointers.d_workBuffer = *buffers.workBuffer;
 
     buffers.cufftOutput->resize(complexSize);
     bufferPointers.d_cufftOutput = *buffers.cufftOutput;
@@ -169,12 +178,14 @@ void Compressor::resize(uint size, uint complexSize){
 
     buffers.bands->resize(size * settings.bandCount);
     bufferPointers.d_bands = *buffers.bands;
+    bufferPointers.d_bandsMoved = bufferPointers.d_bands - settings.processingSize;
 }
 
 void Compressor::calculateKernelSize(){
     kernelSize.block = 256;
     kernelSize.gridReal = (settings.processingSize + kernelSize.block - 1) / kernelSize.block;
     kernelSize.gridReal2D = dim3(kernelSize.gridReal, settings.bandCount);
+    kernelSize.gridFullWindow = (settings.windowSize + kernelSize.block - 1) / kernelSize.block;
     kernelSize.gridComplex = (settings.complexWindowSize + kernelSize.block - 1) / kernelSize.block;
     kernelSize.gridComplex2D = dim3(kernelSize.gridComplex, settings.bandCount);
 }
@@ -185,7 +196,9 @@ void Compressor::setProcessingSize(uint size){
     }
     settings.processingSize = size;
     settings.addressShift = settings.windowSize - settings.processingSize;
+    bufferPointers.d_bandsMoved = bufferPointers.d_bands - size;
     calculateKernelSize();
+    units.windowing->generateWindow(settings.windowSize / 5, settings.processingSize / 5);
 }
 
 void Compressor::setVolume(float volume){

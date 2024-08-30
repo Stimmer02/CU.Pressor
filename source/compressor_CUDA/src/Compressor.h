@@ -20,6 +20,7 @@
 #include "processing/processingUnits/ProcessingUnit_fftBandSplit.h"
 #include "processing/processingUnits/ProcessingUnit_fftBandMerge.h"
 #include "processing/processingUnits/ProcessingUnit_copyBuffer.h"
+#include "processing/processingUnits/ProcessingUnit_windowing.h"
 #include "processing/processingUnits/SoftDependencyGroup.h"
 
 #include <cufft.h>
@@ -108,6 +109,9 @@ private:
     /// @param channelNumber number identifying the channel that is being processed
     void processMultipleWindows(const float* samplesIn, float* samplesOut, const uint& size, const uint& channelNumber);
 
+    // void setWindowRaiseSlope(float slope);
+    // void setWindowFallSlope(float slope);
+
     struct {
         uint bandCount;         // amount of frequency bands
         uint processingSize;    // amount of samples to be processed
@@ -121,12 +125,14 @@ private:
         uint block;
         uint gridReal;
         dim3 gridReal2D;
+        uint gridFullWindow;
         uint gridComplex;
         dim3 gridComplex2D;
     } kernelSize;
 
     struct {
-        CuShiftBuffer<float>* workBuffer;
+        CuShiftBuffer<float>* shiftBuffer;
+        ACuBuffer<float>* workBuffer;
         ACuBuffer<cufftComplex>* cufftOutput;
         ACuBuffer<cufftComplex>* cufftBands;
         ACuBuffer<float>* bands;
@@ -136,11 +142,13 @@ private:
         float const* input;
         float* output;
         
+        float* d_shiftBuffer;
+        float* d_shiftBufferCurrentPart;
         float* d_workBuffer;
-        float* d_workBufferCurrentPart;
         cufftComplex* d_cufftOutput;
         cufftComplex* d_cufftBands;
         float* d_bands;
+        float* d_bandsMoved;
         float* d_output;
     } bufferPointers;
 
@@ -152,6 +160,7 @@ private:
     ProcessingQueue processingQueue;
     
     struct {
+        ProcessingUnit_windowing* windowing;
         ProcessingUnit_fftR2C* fftR2C;
         ProcessingUnit_fftBandSplit* fftBandSplit;
         ProcessingUnit_cuPressorBatch* cuPressorBatch;
