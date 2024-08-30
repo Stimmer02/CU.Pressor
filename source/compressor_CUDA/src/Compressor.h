@@ -132,7 +132,6 @@ private:
 
     struct {
         CuShiftBuffer<float>* shiftBuffer;
-        ACuBuffer<float>* workBuffer;
         ACuBuffer<cufftComplex>* cufftOutput;
         ACuBuffer<cufftComplex>* cufftBands;
         ACuBuffer<float>* bands;
@@ -149,7 +148,6 @@ private:
         cufftComplex* d_cufftBands;
         float* d_bands;
         float* d_bandsMoved;
-        float* d_output;
     } bufferPointers;
 
     struct {

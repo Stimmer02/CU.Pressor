@@ -15,7 +15,6 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     for (int i = 0; i < 2; i++){
         buffers.shiftBuffer[i] = CuShiftBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     }
-    buffers.workBuffer = CuBufferFactory::createBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     buffers.cufftOutput = CuBufferFactory::createBuffer<cufftComplex>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     buffers.cufftBands = CuBufferFactory::createBuffer<cufftComplex>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
     buffers.bands = CuBufferFactory::createBuffer<float>(0, CuBufferFactory::bufferType::TIME_OPTIMAL);
@@ -25,13 +24,13 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
     units.fftBandSplit = new ProcessingUnit_fftBandSplit(bufferPointers.d_cufftOutput, bufferPointers.d_cufftBands, kernelSize.gridComplex2D, kernelSize.block, settings.complexWindowSize, settings.sampleRate);
     units.fftC2R = new ProcessingUnit_fftC2R(bufferPointers.d_cufftBands, bufferPointers.d_bands, fft.C2R);
     units.cuPressorBatch = new ProcessingUnit_cuPressorBatch(bufferPointers.d_bandsMoved, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
-    units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bandsMoved, bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
+    units.fftBandMerge = new ProcessingUnit_fftBandMerge(bufferPointers.d_bandsMoved, bufferPointers.d_workBuffer, kernelSize.gridReal, kernelSize.block, settings.processingSize, settings.bandCount, settings.addressShift);
 
-    units.fftBypass = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_shiftBufferCurrentPart, bufferPointers.d_output, settings.processingSize, cudaMemcpyDeviceToDevice);
+    units.fftBypass = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_shiftBufferCurrentPart, bufferPointers.d_workBuffer, settings.processingSize, cudaMemcpyDeviceToDevice);
 
-    units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
-    units.volume = new ProcessingUnit_volume(bufferPointers.d_output, kernelSize.gridReal, kernelSize.block, settings.processingSize);
-    units.copyToHost = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_output, bufferPointers.output, settings.processingSize, cudaMemcpyDeviceToHost);
+    units.cuPressor = new ProcessingUnit_cuPressor(bufferPointers.d_workBuffer, kernelSize.gridReal, kernelSize.block, settings.processingSize);
+    units.volume = new ProcessingUnit_volume(bufferPointers.d_workBuffer, kernelSize.gridReal, kernelSize.block, settings.processingSize);
+    units.copyToHost = new ProcessingUnit_copyBuffer<float>((const float*&)bufferPointers.d_workBuffer, bufferPointers.output, settings.processingSize, cudaMemcpyDeviceToHost);
 
     units.systemBypass = new ProcessingUnit_copyBuffer<float>(bufferPointers.input, bufferPointers.output, settings.processingSize, cudaMemcpyHostToHost);
     units.GPUProcessing = new SoftDependencyGroup(3);
@@ -68,7 +67,6 @@ Compressor::Compressor(const uint& bandCount, const uint& windowSize, const uint
 
 Compressor::~Compressor(){
     delete[] buffers.shiftBuffer;
-    delete buffers.workBuffer;
     delete buffers.cufftOutput;
     delete buffers.cufftBands;
     delete buffers.bands;
@@ -110,7 +108,7 @@ void Compressor::processSingleWindow(const float* samplesIn, float* samplesOut, 
     buffers.shiftBuffer[channelNumber].pushBack(FROM_HOST, samplesIn, settings.processingSize);
     bufferPointers.d_shiftBuffer = buffers.shiftBuffer[channelNumber];
     bufferPointers.d_shiftBufferCurrentPart = buffers.shiftBuffer[channelNumber][settings.addressShift];
-    bufferPointers.d_output = buffers.shiftBuffer[channelNumber].getInactiveBuffer();
+    bufferPointers.d_workBuffer = buffers.shiftBuffer[channelNumber].getInactiveBuffer();
 
     processingQueue.execute();
 }
@@ -165,10 +163,7 @@ void Compressor::resize(uint size, uint complexSize){
     buffers.shiftBuffer[1].resize(size);
     bufferPointers.d_shiftBuffer = buffers.shiftBuffer[0];
     bufferPointers.d_shiftBufferCurrentPart = buffers.shiftBuffer[0][settings.addressShift];
-    bufferPointers.d_output = buffers.shiftBuffer[0].getInactiveBuffer();
-
-    buffers.workBuffer->resize(size);
-    bufferPointers.d_workBuffer = *buffers.workBuffer;
+    bufferPointers.d_workBuffer = buffers.shiftBuffer[0].getInactiveBuffer();
 
     buffers.cufftOutput->resize(complexSize);
     bufferPointers.d_cufftOutput = *buffers.cufftOutput;
