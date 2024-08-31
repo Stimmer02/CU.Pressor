@@ -68,7 +68,7 @@ void ACuBuffer<TYPE>::copyBuffer(const ACuBuffer<TYPE>& cuBuffer){
 
 template <typename TYPE>
 void ACuBuffer<TYPE>::copyBuffer(originType origin, const TYPE* buffer, uint size, uint index){
-    resize(size);
+    resize(size + index);
     cudaMemcpy(getBuffer() + index, buffer, size * sizeof(TYPE), (cudaMemcpyKind)origin);
 }
 

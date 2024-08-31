@@ -106,8 +106,8 @@ TYPE* CuShiftBuffer<TYPE>::getInactiveBuffer(uint index) const {
 }
 
 template <typename TYPE>
-void CuShiftBuffer<TYPE>::copyInactiveBuffer(destinationType destination, TYPE* d_buffer, uint size, uint index) const {
-    static_cast<CuShiftBuffer<TYPE>*>(buffer[!activeBuffer])->copyBuffer(destination, d_buffer, size, index);
+void CuShiftBuffer<TYPE>::copyInactiveBuffer(destinationType destination, TYPE* buffer, uint size, uint index) const {
+    static_cast<CuShiftBuffer<TYPE>*>(buffer[!activeBuffer])->copyBuffer(destination, buffer, size, index);
 }
 
 template <typename TYPE>
