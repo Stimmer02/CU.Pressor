@@ -6,6 +6,7 @@ ACuSimpleBuffer<TYPE>::ACuSimpleBuffer(){
     setAllocatedSize(0);
     setBufferToNull();
 }
+
 template <typename TYPE>
 ACuSimpleBuffer<TYPE>::ACuSimpleBuffer(uint size) : ACuSimpleBuffer(){
     allocate(size);
@@ -47,7 +48,7 @@ void ACuSimpleBuffer<TYPE>::setBuffer(ACuBuffer<TYPE>*& cuBuffer){
     deallocate();
     setSize(cuBuffer->getSize());
     setAllocatedSize(cuBuffer->getAllocatedSize());
-    d_buffer = cuBuffer->getBufferOvnership();
+    d_buffer = static_cast<ACuSimpleBuffer<TYPE>*>(cuBuffer)->getBufferOvnership();
 
     delete cuBuffer;
     cuBuffer = nullptr;

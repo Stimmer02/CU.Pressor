@@ -44,10 +44,11 @@ public:
 
     virtual void resize(uint newSize) = 0;
 
-// protected: //TODO: test if I can use protected
+
+protected:
     uint size;
     uint allocatedSize;
-
+    
     virtual void setSize(uint size) = 0;
     virtual void setAllocatedSize(uint allocatedSize) = 0;
     virtual void setBufferToNull() = 0;
