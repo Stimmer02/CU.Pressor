@@ -12,8 +12,8 @@ __global__ void kernel_shiftData(TYPE* inputBuffer, TYPE* outputBuffer, int size
 template <typename TYPE>
 CuShiftBuffer<TYPE>::CuShiftBuffer(uint size, typename CuBufferFactory::bufferType bufferType){
     CuBufferFactory::fillBufferArray<TYPE>(buffer, 2, size, bufferType);
-    setSize(static_cast<CuShiftBuffer<TYPE>*>(buffer[0])->getSize());
-    setAllocatedSize(static_cast<CuShiftBuffer<TYPE>*>(buffer[0])->getAllocatedSize());
+    setSize(buffer[0]->getSize());
+    setAllocatedSize(buffer[0]->getAllocatedSize());
     activeBuffer = 0;
 }
 
@@ -26,17 +26,17 @@ template <typename TYPE>
 void CuShiftBuffer<TYPE>::shift(uint shiftSize){
     static const int blockSize = 256;
     int gridSize = (getSize() - shiftSize + blockSize - 1) / blockSize;
-    kernel_shiftData<TYPE><<<gridSize, blockSize>>>(static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->getBuffer(), static_cast<CuShiftBuffer<TYPE>*>(buffer[!activeBuffer])->getBuffer(), getSize(), shiftSize);
+    kernel_shiftData<TYPE><<<gridSize, blockSize>>>(buffer[activeBuffer]->getBuffer(), buffer[!activeBuffer]->getBuffer(), getSize(), shiftSize);
     activeBuffer = !activeBuffer;
 }
 
 template <typename TYPE>
 void CuShiftBuffer<TYPE>::pushBack(originType origin, const TYPE*& arr, uint size){
     if (size >= getSize()){
-        cudaMemcpy(static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->getBuffer(), arr, getSize() * sizeof(TYPE), (cudaMemcpyKind)origin);
+        cudaMemcpy(buffer[activeBuffer]->getBuffer(), arr, getSize() * sizeof(TYPE), (cudaMemcpyKind)origin);
     } else {
         shift(size);
-        cudaMemcpy(static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->getBuffer() + static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->getSize() - size, arr, size * sizeof(TYPE), (cudaMemcpyKind)origin); 
+        cudaMemcpy(buffer[activeBuffer]->getBuffer() + buffer[activeBuffer]->getSize() - size, arr, size * sizeof(TYPE), (cudaMemcpyKind)origin); 
     }
 }
 
@@ -63,10 +63,10 @@ void CuShiftBuffer<TYPE>::setBuffer(TYPE*& d_buffer, uint size, uint allocatedSi
 
 template <typename TYPE>
 void CuShiftBuffer<TYPE>::resize(uint newSize){
-    static_cast<CuShiftBuffer<TYPE>*>(buffer[0])->resize(newSize);
-    static_cast<CuShiftBuffer<TYPE>*>(buffer[1])->resize(newSize);
-    setSize(static_cast<CuShiftBuffer<TYPE>*>(buffer[0])->getSize());
-    setAllocatedSize(static_cast<CuShiftBuffer<TYPE>*>(buffer[0])->getAllocatedSize());
+    buffer[0]->resize(newSize);
+    buffer[1]->resize(newSize);
+    setSize(buffer[0]->getSize());
+    setAllocatedSize(buffer[0]->getAllocatedSize());
 }
 
 template <typename TYPE>
@@ -97,17 +97,17 @@ uint CuShiftBuffer<TYPE>::getAllocatedSize() const {
 
 template <typename TYPE>
 TYPE* CuShiftBuffer<TYPE>::getBuffer() const {
-    return static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->getBuffer();
+    return buffer[activeBuffer]->getBuffer();
 }
 
 template <typename TYPE>
 TYPE* CuShiftBuffer<TYPE>::getInactiveBuffer(uint index) const {
-    return static_cast<CuShiftBuffer<TYPE>*>(buffer[!activeBuffer])->getBuffer() + index;
+    return buffer[!activeBuffer]->getBuffer() + index;
 }
 
 template <typename TYPE>
 void CuShiftBuffer<TYPE>::copyInactiveBuffer(destinationType destination, TYPE* buffer, uint size, uint index) const {
-    static_cast<CuShiftBuffer<TYPE>*>(buffer[!activeBuffer])->copyBuffer(destination, buffer, size, index);
+    this->buffer[!activeBuffer]->copyBuffer(destination, buffer, size, index);
 }
 
 template <typename TYPE>
@@ -132,7 +132,7 @@ void CuShiftBuffer<TYPE>::setBufferToNull(){
 
 template <typename TYPE>
 TYPE* CuShiftBuffer<TYPE>::getBufferOvnership(){
-    TYPE* d_buffer = static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->getBuffer();
+    TYPE* d_buffer = buffer[activeBuffer]->getBuffer();
     static_cast<CuShiftBuffer<TYPE>*>(buffer[activeBuffer])->setBufferToNull();
     deallocate();
     return d_buffer;
